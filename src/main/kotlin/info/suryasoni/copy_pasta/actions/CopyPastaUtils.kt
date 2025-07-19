@@ -5,14 +5,18 @@ import info.suryasoni.copy_pasta.settings.CopyPastaSettingsState
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream
-import java.io.*
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.IOException
 import java.security.MessageDigest
+import java.text.DecimalFormat
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 
 object CopyPastaUtils {
 
-    private val EXCLUDE_PATTERNS: List<String>
+    private val excludePatterns: List<String>
         get() {
             val settings = service<CopyPastaSettingsState>().state
             return settings.excludePatterns.split(",").map { it.trim() }
@@ -23,11 +27,11 @@ object CopyPastaUtils {
     }
 
     fun untarFiles(tais: TarArchiveInputStream, destinationDir: File) {
-        var entry: TarArchiveEntry? = tais.nextEntry as TarArchiveEntry?
+        var entry = tais.nextTarEntry
         while (entry != null) {
             val file = File(destinationDir, entry.name)
             if (shouldExclude(file)) {
-                entry = tais.nextEntry as TarArchiveEntry?
+                entry = tais.nextTarEntry
                 continue
             }
 
@@ -36,10 +40,9 @@ object CopyPastaUtils {
                     throw IOException("Failed to create directory ${file.absolutePath}")
                 }
             } else {
-                file.parentFile?.let { parent ->
-                    if (!parent.isDirectory && !parent.mkdirs()) {
-                        throw IOException("Failed to create directory ${parent.absolutePath}")
-                    }
+                val parent = file.parentFile
+                if (parent != null && !parent.isDirectory && !parent.mkdirs()) {
+                    throw IOException("Failed to create directory ${parent.absolutePath}")
                 }
 
                 if (file.exists() && !file.isDirectory) {
@@ -59,13 +62,13 @@ object CopyPastaUtils {
                 file.setReadable((entry.mode and 0b100_000_000) != 0)
                 file.setWritable((entry.mode and 0b010_000_000) != 0)
             }
-            entry = tais.nextEntry as TarArchiveEntry?
+            entry = tais.nextTarEntry
         }
     }
 
-    fun shouldExclude(file: File): Boolean {
+    private fun shouldExclude(file: File): Boolean {
         val path = file.path.replace(File.separatorChar, '/')
-        return EXCLUDE_PATTERNS.any { pattern ->
+        return excludePatterns.any { pattern ->
             path.matches(Regex(pattern.replace(".", "\\.").replace("*", ".*").replace("?", ".")))
         }
     }
@@ -86,13 +89,13 @@ object CopyPastaUtils {
                 entry.mode = sourceFile.mode() // Preserve file permissions
                 taos.putArchiveEntry(entry)
                 val bytes = fis.readBytes()
-                taos.write(bytes, 0, bytes.size)
+                taos.write(bytes)
                 taos.closeArchiveEntry()
             }
         }
     }
 
-    fun File.mode(): Int {
+    private fun File.mode(): Int {
         var mode = 0
         if (canRead()) mode = mode or 0b100_000_000
         if (canWrite()) mode = mode or 0b010_000_000
@@ -100,30 +103,33 @@ object CopyPastaUtils {
         return mode
     }
 
-    fun encrypt(data: ByteArray, key: ByteArray): ByteArray {
-        val secretKey = SecretKeySpec(key, "AES")
-        val cipher = Cipher.getInstance("AES")
+    fun humanReadableByteCount(bytes: Long): String {
+        val unit = 1024
+        if (bytes < unit) return "$bytes B"
+
+        val exp = (Math.log(bytes.toDouble()) / Math.log(unit.toDouble())).toInt()
+        val pre = "KMGTPE"[exp - 1]
+
+        return DecimalFormat("0.#").format(bytes / Math.pow(unit.toDouble(), exp.toDouble())) + " " + pre + "B"
+    }
+
+    fun hashKey(key: String): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val hash = digest.digest(key.toByteArray())
+        return hash.take(16).toByteArray().toString(Charsets.UTF_8)
+    }
+
+    fun encrypt(data: ByteArray, key: String): ByteArray {
+        val secretKey = SecretKeySpec(key.toByteArray(), "AES")
+        val cipher = Cipher.getInstance("AES/ECB/PKCS5Padding")
         cipher.init(Cipher.ENCRYPT_MODE, secretKey)
         return cipher.doFinal(data)
     }
 
-    fun decrypt(data: ByteArray, key: ByteArray): ByteArray {
-        val secretKey = SecretKeySpec(key, "AES")
-        val cipher = Cipher.getInstance("AES")
+    fun decrypt(data: ByteArray, key: String): ByteArray {
+        val secretKey = SecretKeySpec(key.toByteArray(), "AES")
+        val cipher = Cipher.getInstance("AES/ECB/PKCS5Padding")
         cipher.init(Cipher.DECRYPT_MODE, secretKey)
         return cipher.doFinal(data)
-    }
-
-    fun hashKey(key: String): ByteArray {
-        val digest = MessageDigest.getInstance("SHA-256")
-        return digest.digest(key.toByteArray()) // Use the full 32 bytes for AES-256
-    }
-
-    fun humanReadableByteCount(bytes: Long, si: Boolean = true): String {
-        val unit = if (si) 1000 else 1024
-        if (bytes < unit) return "$bytes B"
-        val exp = (Math.log(bytes.toDouble()) / Math.log(unit.toDouble())).toInt()
-        val pre = (if (si) "kMGTPE" else "KMGTPE")[exp - 1] + if (si) "" else "i"
-        return String.format("%.1f %sB", bytes / Math.pow(unit.toDouble(), exp.toDouble()), pre)
     }
 }

@@ -13,8 +13,9 @@ import info.suryasoni.copy_pasta.settings.CopyPastaSettingsState
 import java.awt.Toolkit
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
-import java.io.*
-import java.util.*
+import java.io.ByteArrayInputStream
+import java.io.File
+import java.util.Base64
 import java.util.zip.GZIPInputStream
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 
@@ -22,8 +23,8 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 class CopyPastaDecodeAction : AnAction() {
 
     override fun actionPerformed(event: AnActionEvent) {
-        val projectDir: VirtualFile? = event.getData(CommonDataKeys.VIRTUAL_FILE)
-        if (projectDir == null || !projectDir.isDirectory) {
+        val projectDir = event.getData(CommonDataKeys.VIRTUAL_FILE) ?: return
+        if (!projectDir.isDirectory) {
             return
         }
 
@@ -34,15 +35,21 @@ class CopyPastaDecodeAction : AnAction() {
         try {
             // Get the Base64 string from clipboard
             val clipboard = Toolkit.getDefaultToolkit().systemClipboard
-            val base64EncodedData = clipboard.getData(DataFlavor.stringFlavor) as? String ?: return
+            val clipboardData = clipboard.getData(DataFlavor.stringFlavor) ?: return
+            val base64EncodedData = clipboardData as? String ?: return
 
             // Decode the Base64 string
-            val decodedBytes = Base64.getDecoder().decode(base64EncodedData.replace("\n", ""))
+            val decodedBytes = try {
+                Base64.getDecoder().decode(base64EncodedData.replace("\n", ""))
+            } catch (e: IllegalArgumentException) {
+                notify("Invalid Data", "The clipboard does not contain valid base64 encoded data.", NotificationType.ERROR)
+                return
+            }
 
             // Check if the data is encrypted
             if (isEncrypted(decodedBytes)) {
                 if (!enableDecryption) {
-                    notify("Decryption Disabled", "The file is encrypted, but decryption is disabled.", NotificationType.ERROR)
+                    notify("Decryption Disabled", "The data is encrypted, but decryption is disabled in settings.", NotificationType.ERROR)
                     return
                 }
 
@@ -51,7 +58,7 @@ class CopyPastaDecodeAction : AnAction() {
                     val finalBytes = CopyPastaUtils.decrypt(decodedBytes, encryptionKey)
                     processDecryptedData(finalBytes, projectDir)
                 } catch (e: Exception) {
-                    notify("Decryption Failed", "The file is encrypted, but the pass key is incorrect.", NotificationType.ERROR)
+                    notify("Decryption Failed", "The data is encrypted, but the encryption key is incorrect.", NotificationType.ERROR)
                 }
             } else {
                 // Process the data if it's not encrypted
@@ -62,17 +69,17 @@ class CopyPastaDecodeAction : AnAction() {
             val emptyStringSelection = StringSelection("")
             clipboard.setContents(emptyStringSelection, null)
 
-            // Refresh the project directory in IntelliJ
+            // Refresh the project directory
             LocalFileSystem.getInstance().refreshAndFindFileByIoFile(File(projectDir.path))?.refresh(true, true)
 
         } catch (e: Exception) {
-            e.printStackTrace()
+            notify("Error", "Failed to decode data: ${e.message}", NotificationType.ERROR)
         }
     }
 
     private fun isEncrypted(data: ByteArray): Boolean {
-        // Simple heuristic to check if data is encrypted (e.g., check for non-printable characters)
-        return data.any { it < 32 || it > 126 }
+        // Simple heuristic to check if data is encrypted
+        return data.size > 0 && data.any { byte -> byte < 32 && byte != '\n'.code.toByte() && byte != '\r'.code.toByte() }
     }
 
     private fun processDecryptedData(data: ByteArray, projectDir: VirtualFile) {
@@ -84,11 +91,13 @@ class CopyPastaDecodeAction : AnAction() {
                         CopyPastaUtils.untarFiles(tais, destinationDir)
                     }
                 }
+            } else {
+                notify("Invalid Format", "The decoded data is not in the expected tar.gz format.", NotificationType.ERROR)
+                return
             }
         }
 
-        // Send notification
-        notify("Unarchive Complete", "The files have been successfully unarchived and clipboard cleared.", NotificationType.INFORMATION)
+        notify("Extraction Complete", "The files have been successfully extracted and the clipboard cleared.", NotificationType.INFORMATION)
     }
 
     private fun notify(title: String, content: String, type: NotificationType) {
