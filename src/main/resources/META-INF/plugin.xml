@@ -1,0 +1,52 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <id>info.suryasoni.copy_pasta</id>
+    <name>Copy-Pasta</name>
+    <vendor email="s3716706@student.rmit.edu.au" url="https://github.com/spsoni">Sury Soni</vendor>
+
+    <description><![CDATA[
+    Copy-Pasta allows you to easily encode and decode files and directories to share code snippets and examples through the clipboard.
+    <br>
+    Features:
+    <ul>
+      <li>Encode directories to a shareable text format</li>
+      <li>Decode and recreate directories from encoded text</li>
+      <li>Optional encryption for sensitive content</li>
+      <li>Seamless clipboard integration</li>
+    </ul>
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationService serviceImplementation="info.suryasoni.copy_pasta.settings.CopyPastaSettingsState"/>
+        <projectConfigurable
+                instance="info.suryasoni.copy_pasta.settings.CopyPastaSettingsConfigurable"
+                parentId="tools"
+                displayName="Copy-Pasta"/>
+    </extensions>
+    <actions>
+        <!-- Define a new group to contain both actions -->
+        <group id="info.suryasoni.copy_pasta.action.GroupedActions"
+               text="Copy-Pasta"
+               description="Copy-Pasta zip and unzip actions"
+               popup="true">
+            <add-to-group
+                    group-id="ProjectViewPopupMenu"
+                    relative-to-action="CopyContentRootPath"
+                    anchor="after" />
+            <action id="CopyPastaEncodeAsTarAction"
+                    class="info.suryasoni.copy_pasta.actions.CopyPastaEncodeAsTarAction"
+                    text="Copy"
+                    description="Tar GZips the project folder and copies it to clipboard"
+                    icon="AllIcons.Actions.Copy">
+            </action>
+            <action id="CopyPastaDecodeAction"
+                    class="info.suryasoni.copy_pasta.actions.CopyPastaDecodeAction"
+                    text="Paste"
+                    description="Decodes Base64 zip from clipboard and unzips to project folder"
+                    icon="AllIcons.Actions.MenuPaste">
+            </action>
+        </group>
+    </actions>
+</idea-plugin>
