@@ -27,11 +27,11 @@ object CopyPastaUtils {
     }
 
     fun untarFiles(tais: TarArchiveInputStream, destinationDir: File) {
-        var entry = tais.nextTarEntry
+        var entry: TarArchiveEntry? = tais.nextEntry as TarArchiveEntry?
         while (entry != null) {
             val file = File(destinationDir, entry.name)
             if (shouldExclude(file)) {
-                entry = tais.nextTarEntry
+                entry = tais.nextEntry as TarArchiveEntry?
                 continue
             }
 
@@ -62,7 +62,7 @@ object CopyPastaUtils {
                 file.setReadable((entry.mode and 0b100_000_000) != 0)
                 file.setWritable((entry.mode and 0b010_000_000) != 0)
             }
-            entry = tais.nextTarEntry
+            entry = tais.nextEntry as TarArchiveEntry?
         }
     }
 
