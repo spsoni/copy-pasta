@@ -4,3 +4,6 @@
 .qodana
 build
 .DS_Store
+.run
+.kotlin
+gradle
