@@ -13,6 +13,8 @@ import java.security.MessageDigest
 import java.text.DecimalFormat
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
+import kotlin.math.log
+import kotlin.math.pow
 
 object CopyPastaUtils {
 
@@ -27,11 +29,11 @@ object CopyPastaUtils {
     }
 
     fun untarFiles(tais: TarArchiveInputStream, destinationDir: File) {
-        var entry: TarArchiveEntry? = tais.nextEntry as TarArchiveEntry?
+        var entry: TarArchiveEntry? = tais.nextEntry as? TarArchiveEntry
         while (entry != null) {
             val file = File(destinationDir, entry.name)
             if (shouldExclude(file)) {
-                entry = tais.nextEntry as TarArchiveEntry?
+                entry = tais.nextEntry as? TarArchiveEntry
                 continue
             }
 
@@ -40,9 +42,10 @@ object CopyPastaUtils {
                     throw IOException("Failed to create directory ${file.absolutePath}")
                 }
             } else {
-                val parent = file.parentFile
-                if (parent != null && !parent.isDirectory && !parent.mkdirs()) {
-                    throw IOException("Failed to create directory ${parent.absolutePath}")
+                file.parentFile?.let { parent ->
+                    if (!parent.isDirectory && !parent.mkdirs()) {
+                        throw IOException("Failed to create directory ${parent.absolutePath}")
+                    }
                 }
 
                 if (file.exists() && !file.isDirectory) {
@@ -62,7 +65,7 @@ object CopyPastaUtils {
                 file.setReadable((entry.mode and 0b100_000_000) != 0)
                 file.setWritable((entry.mode and 0b010_000_000) != 0)
             }
-            entry = tais.nextEntry as TarArchiveEntry?
+            entry = tais.nextEntry as? TarArchiveEntry
         }
     }
 
@@ -107,10 +110,10 @@ object CopyPastaUtils {
         val unit = 1024
         if (bytes < unit) return "$bytes B"
 
-        val exp = (Math.log(bytes.toDouble()) / Math.log(unit.toDouble())).toInt()
+        val exp = (log(bytes.toDouble(), unit.toDouble())).toInt()
         val pre = "KMGTPE"[exp - 1]
 
-        return DecimalFormat("0.#").format(bytes / Math.pow(unit.toDouble(), exp.toDouble())) + " " + pre + "B"
+        return DecimalFormat("0.#").format(bytes / unit.toDouble().pow(exp)) + " " + pre + "B"
     }
 
     fun hashKey(key: String): String {

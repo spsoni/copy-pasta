@@ -22,6 +22,7 @@ class CopyPastaSettingsState : PersistentStateComponent<CopyPastaSettingsState.S
         var excludePatterns: String = "*.pyc,*.pyo,__pycache__/*,.git/*,venv/*,.venv/*,build/*,dist/*,*.egg-info/*,*.log,htmlcov/*,.coverage*,.vscode/*,.idea/*,*~,*.swp,*.bak,.DS_Store",
         var maxBase64Size: Int = 1 * 1024 * 1024, // 1 MB
         var encryptionKey: String = "default_key_123456", // Predefined key (should be securely generated and stored)
-        var enableDecryption: Boolean = true // Toggle for enabling/disabling decryption
+        var enableDecryption: Boolean = true, // Toggle for enabling/disabling decryption
+        var enableEncryption: Boolean = true  // Toggle for enabling/disabling encryption
     )
 }

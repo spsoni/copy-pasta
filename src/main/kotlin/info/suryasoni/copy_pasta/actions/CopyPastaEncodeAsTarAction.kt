@@ -6,7 +6,6 @@ import com.intellij.notification.Notifications
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.components.service
 import info.suryasoni.copy_pasta.settings.CopyPastaSettingsState
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream
@@ -28,7 +27,7 @@ class CopyPastaEncodeAsTarAction : AnAction() {
         val settings = service<CopyPastaSettingsState>().state
         val maxBase64Size = settings.maxBase64Size
         val encryptionKey = CopyPastaUtils.hashKey(settings.encryptionKey)
-        val enableEncryption = settings.enableDecryption
+        val enableEncryption = settings.enableEncryption // Renamed for clarity
 
         try {
             val byteArrayOutputStream = ByteArrayOutputStream()
