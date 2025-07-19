@@ -55,12 +55,12 @@ File → Settings → Tools → Copy-Pasta
   - Settings → Plugins → Marketplace → Search for "Copy-Pasta"
 
 - **Manual Installation**:
-  1. Download the latest plugin ZIP from [Releases](https://github.com/YourUsername/copy-pasta/releases)
+  1. Download the latest plugin ZIP from [Releases](https://github.com/spsoni/copy-pasta/releases)
   2. In your IDE: Settings → Plugins → ⚙️ → Install Plugin from Disk...
 
 ## Feedback and Contributions
 
-Feedback, bug reports, and pull requests are welcome! Feel free to [open an issue](https://github.com/YourUsername/copy-pasta/issues) or submit a pull request.
+Feedback, bug reports, and pull requests are welcome! Feel free to [open an issue](https://github.com/spsoni/copy-pasta/issues) or submit a pull request.
 
 ## License
 
