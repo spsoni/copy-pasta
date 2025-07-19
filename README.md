@@ -4,6 +4,15 @@
 
 A convenient IntelliJ-based IDE plugin that lets you easily share code and project structures through the clipboard.
 
+<!-- Plugin description -->
+Copy-Pasta makes it effortless to share code snippets, examples, or entire directories with teammates and the community. The plugin compresses, encodes, and copies content to your clipboard in a format that can be easily shared through chat, email, or forums. Recipients can paste and decode this content to recreate the original files and directory structure.
+
+**Features:**
+- Encode directories to a shareable text format
+- Decode and recreate directories from encoded text
+- Optional encryption for sensitive content
+- Seamless clipboard integration
+<!-- Plugin description end -->
 
 ## What is Copy-Pasta?
 
