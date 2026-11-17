@@ -1,7 +1,21 @@
 # Copy-Pasta user guide
 
-Copy-Pasta moves files and folders between JetBrains IDEs as a block of text. Copy on one machine, paste the text into
-any chat, email or ticket, and paste it back into another IDE.
+Copy-Pasta moves files and folders between JetBrains IDEs as a block of text that you send through any chat, email or
+ticket.
+
+## Quick start
+
+| | Sender | Recipient |
+|---|---|---|
+| 1 | Right-click files or folders → **Copy-Pasta \| Copy** | Select the **whole** message, `BEGIN` to `END`, and copy it |
+| 2 | Paste the text into a chat, email or ticket | Right-click the target folder → **Copy-Pasta \| Paste…** |
+| 3 | | Review the preview → **Paste N Files** |
+
+> [!IMPORTANT]
+> **Paste reads your clipboard, not the chat window.** If you choose **Paste…** without copying the message first, Copy-Pasta
+> says *"The clipboard does not contain Copy-Pasta text"* and nothing is written.
+
+## Contents
 
 - [Copy files](#copy-files)
 - [Paste files](#paste-files)
@@ -26,8 +40,10 @@ large selections don't freeze the IDE.
 
 ## Paste files
 
-1. Copy the **whole** block, from `-----BEGIN COPY-PASTA-----` to `-----END COPY-PASTA-----`. Text around it, such as
-   the rest of a chat message or `>` quote marks from an email reply, is ignored.
+1. **Copy the message you received.** Select the whole block, from `-----BEGIN COPY-PASTA-----` to
+   `-----END COPY-PASTA-----`, and press <kbd>Ctrl</kbd>+<kbd>C</kbd> (<kbd>⌘</kbd>+<kbd>C</kbd> on macOS). It's fine to
+   include text around it, such as the rest of a chat message or `>` quote marks from an email reply: Copy-Pasta
+   ignores it. Chat apps often collapse long messages, so expand the message before you select it.
 2. In the **Project** view, right-click the folder to paste into and choose **Copy-Pasta | Paste…**. You can also use
    **Edit | Paste Files from Copy-Pasta…**. If you right-click a file, the paste goes into the folder containing it.
    With nothing selected, it goes into the project root.

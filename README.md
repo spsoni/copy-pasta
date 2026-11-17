@@ -1,48 +1,56 @@
 # Copy-Pasta
 
 [![Build](https://github.com/spsoni/copy-pasta/actions/workflows/build.yml/badge.svg)](https://github.com/spsoni/copy-pasta/actions/workflows/build.yml)
+[![Release](https://img.shields.io/github/v/release/spsoni/copy-pasta)](https://github.com/spsoni/copy-pasta/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Share files and folders as a block of text you paste into any chat, and get them back as real files in another JetBrains IDE.
+**Send files and folders through any chat, and get them back as real files in another JetBrains IDE.**
 
 <!-- Plugin description -->
-**Copy-Pasta** turns files and folders into one block of text you can paste into Slack, Teams, email or a forum. The person you send it to pastes it back and gets the same files, after previewing exactly what will be written.
+**Copy-Pasta** sends files and folders through any chat. It packs your selection into a single block of text for Slack, Teams, email, a forum or a support ticket. The recipient copies that text and pastes it into their IDE, where it becomes the same files again. They see exactly what will be written first.
 
-You don't need a repository, a file-sharing service or an attachment. It works offline, has no account and sends no data anywhere.
-
-**Why you'll want it**
-
-Chat is where developers actually talk, but it's bad at moving code. Paste three files into Slack and they arrive as a wall of text with the folder structure lost, curly quotes where straight ones should be, and the last file cut off. Attachments get blocked or expire. A branch needs everyone on the same repository. Copy-Pasta gives you one block of text that holds a whole folder tree and comes back byte for byte.
-
-- **Send a working reproducer.** Copy the four files that show the bug. Your colleague gets a runnable folder, not a description of one.
-- **Help across repositories.** Share a config, a Gradle setup or a scaffold with someone who doesn't have access to your project.
-- **Move work between machines.** Get a prototype from a work laptop to a home desktop, or into a locked-down VM where chat is the only thing that gets through.
-- **Answer on forums and in support tickets.** Post a complete example in one message instead of five code blocks and "put this in `src/`".
-- **Keep secrets secret.** Add a passphrase and send it through a different channel. The chat log only ever holds ciphertext.
-
-Two clicks to copy and two to paste, and you see every file before it touches your project.
+No repository, file-sharing service or account is needed. Copy-Pasta works offline and sends no data anywhere.
 
 **How it works**
 
-1. In the **Project** view, right-click files or folders and choose **Copy-Pasta | Copy**.
-2. Paste the text wherever you like. It starts with a line explaining what it is.
-3. The recipient copies the whole block, right-clicks a folder and chooses **Copy-Pasta | Paste…** (or **Edit | Paste Files from Copy-Pasta…**).
-   A preview lists every file as *new*, *overwrite* or *identical*, and nothing is written until they confirm.
+1. **Copy.** In the Project view, right-click files or folders and choose **Copy-Pasta | Copy**.
+2. **Send.** Paste the text into a chat, email or ticket.
+3. **Copy it on the other side.** The recipient selects the whole message, from `BEGIN COPY-PASTA` to `END COPY-PASTA`, and copies it. Copy-Pasta reads the clipboard, not the chat window.
+4. **Paste.** Right-click the target folder, choose **Copy-Pasta | Paste…**, review the preview and confirm.
 
-**Features**
+**Why Copy-Pasta**
 
-- **Smart selection:** files ignored by your VCS (`.gitignore`), excluded folders and the IDE's ignored files are left out automatically. Unsaved editor changes are included.
-- **Safe paste:** preview with checkboxes (executable files are marked), a single Local History checkpoint so the whole paste can be undone, and protection against paths that escape the target folder or write into `.git`.
-- **Chat-proof text:** survives email quoting, line re-wrapping and surrounding chat text. If a chat app cuts the message, you're told it's incomplete instead of getting broken files.
-- **Optional encryption:** **Copy Encrypted…** protects the content with a passphrase (AES-256-GCM). The passphrase is never stored; share it separately.
-- **No lock-in:** the content is a standard ZIP. Without the plugin, the Base64 lines between the `Format:` line and the END line decode with `base64 -d`, then `unzip`.
-- **Lightweight:** no settings to configure, no dependencies, and work runs in the background.
+Code pasted into chat loses its folder structure, gets re-wrapped and reformatted, and is silently cut off when it's too long. Attachments get blocked or expire, and a branch only helps people who share your repository. Copy-Pasta moves a whole folder tree as plain text and restores it byte for byte. If the message was cut off, it tells you so instead of writing broken files.
+
+- **Reproducers** that a colleague can run, not just read.
+- **Configs, build setups and scaffolds** for people outside your repository.
+- **Work between machines**, including locked-down environments where chat is the only way in.
+- **Complete examples** on forums and in support tickets, in a single message.
+
+**Safe by design**
+
+- **Preview before writing.** Every file is marked *new*, *overwrite* or *identical*, and you can untick any of them. Executable files are flagged.
+- **One-step undo.** Each paste is a single Local History checkpoint.
+- **Path protection.** Entries that would escape the target folder or write into `.git` are blocked.
+- **Optional encryption.** **Copy Encrypted…** protects the content with a passphrase (AES-256-GCM, PBKDF2 with 600,000 iterations). The passphrase is never stored.
+
+**Smart and lightweight**
+
+- Honours `.gitignore`, excluded folders and the IDE's ignored files. Anything you select explicitly is always included.
+- Includes unsaved editor changes.
+- Survives email quoting, line re-wrapping and surrounding chat text.
+- Uses a standard ZIP inside, so your content is never locked in.
+- Has no settings and no dependencies, and does its work in the background.
 
 Works in IntelliJ IDEA, PyCharm, WebStorm, GoLand, Rider, CLion, PhpStorm, RubyMine, DataGrip, Android Studio and other JetBrains IDEs, version 2025.3 or later.
 <!-- Plugin description end -->
 
+> [!IMPORTANT]
+> **Paste reads your clipboard.** Before you choose **Copy-Pasta | Paste…**, copy the entire message you received, including the `BEGIN` and `END` lines.
+
 ![The Paste Files preview: every file is listed as new, overwrite or identical before anything is written](docs/images/paste-preview.png)
 
-**[User guide](docs/user-guide.md)**: copying, pasting, encryption, chat limits, undo and troubleshooting.
+**[Read the user guide](docs/user-guide.md)**: copying and pasting, encryption, long selections, undo, and troubleshooting.
 
 ## Installation
 
