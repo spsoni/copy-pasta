@@ -15,6 +15,7 @@ import info.suryasoni.copy_pasta.actions.PasteAction
 import info.suryasoni.copy_pasta.actions.PasteFlow
 import info.suryasoni.copy_pasta.ide.ClipboardStatus
 import info.suryasoni.copy_pasta.ide.ClipboardWatcher
+import info.suryasoni.copy_pasta.ide.Notifier
 import java.awt.Cursor
 import java.awt.event.MouseEvent
 import javax.swing.JComponent
@@ -49,8 +50,14 @@ class ClipboardStatusWidget(private val project: Project) : CustomStatusBarWidge
     init {
         object : ClickListener() {
             override fun onClick(event: MouseEvent, clickCount: Int): Boolean {
-                val target = PasteAction.projectRoot(project) ?: return false
-                PasteFlow.pasteFromClipboard(project, target)
+                // The sender's own copy isn't offered for pasting back; Copy-Pasta | Paste… still does it if wanted.
+                if (ClipboardWatcher.getInstance().status is ClipboardStatus.Copied) return true
+                val target = PasteAction.projectRoot(project)
+                if (target == null) {
+                    Notifier.error(project, message("widget.noProjectRoot"))
+                } else {
+                    PasteFlow.pasteFromClipboard(project, target)
+                }
                 return true
             }
         }.installOn(label)
@@ -79,6 +86,13 @@ class ClipboardStatusWidget(private val project: Project) : CustomStatusBarWidge
             is ClipboardStatus.Pasted -> {
                 label.icon = dimIcon
                 label.toolTipText = message("widget.tooltip.pasted", status.summary ?: message("widget.summary.unknown"))
+                label.isVisible = true
+                shownFingerprint = status.fingerprint
+            }
+            is ClipboardStatus.Copied -> {
+                // The sender's own copy: a steady icon confirms it, without inviting them to paste it back here.
+                label.icon = readyIcon
+                label.toolTipText = message("widget.tooltip.copied", status.summary ?: message("widget.summary.unknown"))
                 label.isVisible = true
                 shownFingerprint = status.fingerprint
             }

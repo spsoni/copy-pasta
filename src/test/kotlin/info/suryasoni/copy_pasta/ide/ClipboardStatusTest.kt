@@ -27,6 +27,15 @@ class ClipboardStatusTest {
     }
 
     @Test
+    fun `own copy is labelled copied, not ready`() {
+        val status = ClipboardStatus.of(text, pastedFingerprint = null, copiedFingerprint = ClipboardStatus.fingerprint(text))
+        assertTrue(status is ClipboardStatus.Copied)
+        // Once pasted (for example into a second project), that label wins.
+        val fp = ClipboardStatus.fingerprint(text)
+        assertTrue(ClipboardStatus.of(text, pastedFingerprint = fp, copiedFingerprint = fp) is ClipboardStatus.Pasted)
+    }
+
+    @Test
     fun `a new copy after a paste is ready again`() {
         val other = Envelope.encode(ByteArray(100) { (it + 1).toByte() }, encrypted = true, summary = "1 file, 100 B")
         val status = ClipboardStatus.of(other, pastedFingerprint = ClipboardStatus.fingerprint(text))

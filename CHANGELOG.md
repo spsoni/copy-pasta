@@ -13,6 +13,12 @@
   paste the message or open a file that contains it, and it reports cut-off or damaged text right there.
 - **Save as File…** on the "long for chat" notification saves the text as a `.txt` file to send as an attachment.
 - The Project view menu shows what's on the clipboard, for example **Paste… (3 files, 4.1 KB)**.
+- An error about cut-off or damaged text offers **Paste Text or Open File…**.
+
+### Fixed
+
+- Pasting while the clipboard held a very long line of dashes (for example a log or a text table) could freeze the
+  IDE for seconds.
 
 ## [2.0.1] - 2026-11-17
 

@@ -97,8 +97,22 @@ src/test/kotlin/   format/* are JUnit 4 unit tests; ide/* are light platform tes
   - **Clicking the widget pastes into the project root.** `AbstractProjectViewPane.getSelectedDirectories` and
     friends are deprecated in 2025.3; the preview shows the target.
 
-  The sender sees the icon too after copying, which doubles as confirmation that the copy worked. dev01 is headless,
-  so the widget and dialog look need checking on a desktop.
+  The sender's own copy is labelled `Copied` (steady icon, click does nothing), so they aren't invited to paste it
+  back. dev01 is headless, so the widget and dialog look need checking on a desktop.
+
+  An independent review found 7 issues, all fixed:
+  1. **ReDoS:** `-{3,}\s*BEGIN` was quadratic on long dash runs (64k dashes took 17 s, on the EDT). This was latent in
+     2.0's Paste and made automatic by the watcher. It now uses `(?<!-)-{3,}+\s*+…`, with a timed test.
+  2. DialogWrapper re-runs `doValidate` every 300 ms after a failed OK. Validation is now cached per edit, and the
+     full decode runs once in `doOKAction`.
+  3. Opened files never go into the JTextArea. They're read via NIO under a progress dialog, which avoids VFS
+     content caching.
+  4. The sender's own copy showed as "ready to paste".
+  5. The Save as File notification held up to ~70 MB. It now uses a SoftReference plus a clipboard fingerprint fallback.
+  6. Clicking the widget did nothing silently when there was no project root.
+  7. A truncated clipboard was a dead end. The error notification now opens the dialog.
+
+  Lesson (again): get an independent review for anything that runs on untrusted input automatically.
 
 - **2026-11-17 — user docs live in `docs/`, not the GitHub wiki.** A wiki is a separate repo: it isn't versioned with
   the code, isn't reviewed in PRs, and drifts from the UI. The guide's screenshots are the owner's (macOS, light

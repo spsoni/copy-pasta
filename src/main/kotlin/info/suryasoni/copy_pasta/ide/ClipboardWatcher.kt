@@ -47,14 +47,23 @@ class ClipboardWatcher : Disposable {
         ApplicationManager.getApplication().invokeLater({ update(readClipboard()) }, ModalityState.any())
     }
 
+    @Volatile
+    private var copiedFingerprint: Long? = null
+
     /** Records that [text] was pasted, so the widget shows it as done. The clipboard itself is left alone. */
     fun markPasted(text: String) {
         pastedFingerprint = ClipboardStatus.fingerprint(text)
         refresh()
     }
 
+    /** Records that this IDE copied [text], so the sender isn't invited to paste their own files back. */
+    fun markCopied(text: String) {
+        copiedFingerprint = ClipboardStatus.fingerprint(text)
+        refresh()
+    }
+
     private fun update(text: String?) {
-        val next = ClipboardStatus.of(text, pastedFingerprint)
+        val next = ClipboardStatus.of(text, pastedFingerprint, copiedFingerprint)
         if (next == status) return
         status = next
         ApplicationManager.getApplication().messageBus.syncPublisher(TOPIC).statusChanged(next)

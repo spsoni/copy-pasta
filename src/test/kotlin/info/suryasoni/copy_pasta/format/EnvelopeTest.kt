@@ -148,6 +148,17 @@ class EnvelopeTest {
         assertTrue(summary == null || (summary.length <= 60 && summary.none { it in "<>/‮" }))
     }
 
+    @Test(timeout = 2_000)
+    fun `long runs of dashes are scanned in linear time`() {
+        val dashes = "-".repeat(200_000)
+        assertFalse(Envelope.looksLikeEnvelope(dashes))
+        assertEquals(null, Envelope.peek(dashes))
+        assertEquals(Problem.NOT_FOUND, assertThrows(EnvelopeException::class.java) { Envelope.decode(dashes) }.problem)
+        val endless = text.replace("-----END COPY-PASTA-----", dashes)
+        assertEquals(Problem.INCOMPLETE, assertThrows(EnvelopeException::class.java) { Envelope.decode(endless) }.problem)
+        assertArrayEquals(payload, Envelope.decode(dashes + "\n" + text).payload)
+    }
+
     @Test
     fun `peek only looks at the start of very long text`() {
         assertEquals(null, Envelope.peek(" ".repeat(70_000) + text))

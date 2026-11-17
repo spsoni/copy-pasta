@@ -78,9 +78,22 @@ internal object PasteFlow {
             }
 
             override fun onThrowable(error: Throwable) {
+                if (error is Envelope.EnvelopeException) {
+                    // A cut-off or damaged message isn't a dead end: offer the dialog, where the user can paste a
+                    // complete copy or open the file the sender saved.
+                    val problem = PasteTextDialog.problemMessage(error)
+                    Notifier.notify(
+                        project,
+                        problem,
+                        NotificationType.ERROR,
+                        NotificationAction.createSimpleExpiring(message("paste.tryAgain")) {
+                            PasteTextDialog.ask(project, initialText = text, initialError = problem)?.let { paste(project, target, it) }
+                        },
+                    )
+                    return
+                }
                 val content =
                     when (error) {
-                        is Envelope.EnvelopeException -> PasteTextDialog.problemMessage(error)
                         is WrongPassphraseException -> message("paste.wrongPassphrase")
                         is InvalidArchiveException -> message("paste.invalidArchive", error.message.orEmpty())
                         else -> message("paste.failed", error.message ?: error.javaClass.simpleName)

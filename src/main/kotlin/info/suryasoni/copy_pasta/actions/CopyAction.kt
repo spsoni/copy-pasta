@@ -20,12 +20,16 @@ import info.suryasoni.copy_pasta.CopyPastaBundle.message
 import info.suryasoni.copy_pasta.format.Crypto
 import info.suryasoni.copy_pasta.format.Envelope
 import info.suryasoni.copy_pasta.format.ZipCodec
+import info.suryasoni.copy_pasta.ide.ClipboardStatus
+import info.suryasoni.copy_pasta.ide.ClipboardWatcher
 import info.suryasoni.copy_pasta.ide.CopyCollector
 import info.suryasoni.copy_pasta.ide.CopyTooLargeException
 import info.suryasoni.copy_pasta.ide.Notifier
 import info.suryasoni.copy_pasta.ui.PassphraseDialog
+import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
 import java.io.IOException
+import java.lang.ref.SoftReference
 
 /** Copies the selected files and folders to the clipboard as Copy-Pasta text. */
 open class CopyAction(private val encrypted: Boolean = false) : DumbAwareAction() {
@@ -64,6 +68,9 @@ open class CopyAction(private val encrypted: Boolean = false) : DumbAwareAction(
                     Notifier.notify(project, message("copy.nothing"), NotificationType.WARNING)
                     return
                 }
+                // Mark first: setContents() triggers the watcher, and it should see this as our own copy, not as
+                // incoming text to paste.
+                ClipboardWatcher.getInstance().markCopied(copied)
                 CopyPasteManager.getInstance().setContents(StringSelection(copied))
                 val lines =
                     mutableListOf(
@@ -81,7 +88,16 @@ open class CopyAction(private val encrypted: Boolean = false) : DumbAwareAction(
                 val warn = tooLongForChat || collected.skippedLarge.isNotEmpty() || collected.skippedDuplicates > 0
                 val actions =
                     if (tooLongForChat) {
-                        arrayOf(NotificationAction.createSimpleExpiring(message("copy.saveAsFile")) { saveAsFile(project, copied) })
+                        // The notification can stay in the Notifications tool window for a long time, so it holds
+                        // the (possibly ~70 MB) text only softly, and falls back to the clipboard if it still matches.
+                        val held = SoftReference(copied)
+                        val fingerprint = ClipboardStatus.fingerprint(copied)
+                        arrayOf(
+                            NotificationAction.createSimpleExpiring(message("copy.saveAsFile")) {
+                                val again = held.get() ?: clipboardText()?.takeIf { ClipboardStatus.fingerprint(it) == fingerprint }
+                                if (again != null) saveAsFile(project, again) else Notifier.error(project, message("save.gone"))
+                            },
+                        )
                     } else {
                         emptyArray()
                     }
@@ -107,6 +123,8 @@ open class CopyAction(private val encrypted: Boolean = false) : DumbAwareAction(
             }
         }.queue()
     }
+
+    private fun clipboardText(): String? = CopyPasteManager.getInstance().getContents<String>(DataFlavor.stringFlavor)
 
     /** Saves [text] as a `.txt` file to send as an attachment; the recipient opens it from Paste's fallback dialog. */
     private fun saveAsFile(project: Project, text: String) {

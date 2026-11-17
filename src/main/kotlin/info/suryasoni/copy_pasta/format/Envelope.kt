@@ -24,8 +24,10 @@ object Envelope {
     private const val PLAIN_LABEL = "COPY-PASTA"
     private const val ENCRYPTED_LABEL = "COPY-PASTA ENCRYPTED"
 
-    private val BEGIN = Regex("""-{3,}\s*BEGIN (COPY-PASTA(?: ENCRYPTED)?)\s*-{3,}""", RegexOption.IGNORE_CASE)
-    private val END = Regex("""-{3,}\s*END COPY-PASTA(?: ENCRYPTED)?\s*-{3,}""", RegexOption.IGNORE_CASE)
+    // A match may only start at the beginning of a run of dashes, and the run is taken possessively. Without that,
+    // a long line of dashes (a log, a table) took quadratic time: 64k dashes took 17 s. These run on the EDT.
+    private val BEGIN = Regex("""(?<!-)-{3,}+\s*+BEGIN (COPY-PASTA(?: ENCRYPTED)?)\s*-{3,}""", RegexOption.IGNORE_CASE)
+    private val END = Regex("""(?<!-)-{3,}+\s*+END COPY-PASTA(?: ENCRYPTED)?\s*-{3,}""", RegexOption.IGNORE_CASE)
     private val FORMAT_LINE = Regex("""Format:\s*(\d+)\s*;\s*length:\s*(\d+)""", RegexOption.IGNORE_CASE)
     private val QUOTE_PREFIX = Regex("""^[\s>]+""")
     private val BASE64_LINE = Regex("""[A-Za-z0-9+/=]+""")

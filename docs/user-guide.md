@@ -53,7 +53,8 @@ large selections don't freeze the IDE.
 
 If the clipboard holds something else when you choose **Paste…**, the **Paste Copy-Pasta Text** dialog opens instead.
 Paste the message into it, or choose **Open File…** to load a `.txt` attachment. A message that is cut off or damaged
-is reported in the dialog, so you can fix it before going on.
+is reported in the dialog, so you can fix it before going on. If the clipboard text turns out to be cut off, the error
+notification offers **Paste Text or Open File…**, which opens the same dialog.
 
 ![The Paste Files preview listing each file as new, with a checkbox](images/paste-preview.png)
 
@@ -80,6 +81,7 @@ A clipboard icon in the status bar shows when there is Copy-Pasta text to paste:
 | Icon | Meaning |
 |---|---|
 | Appears with a short pulse | New Copy-Pasta text is on the clipboard. Hover over it to see what it contains. |
+| Appears steadily after you copy | Your own copy is ready to send. Clicking it does nothing, so you don't paste your files back by accident. |
 | Dimmed | This text has already been pasted. Click to paste it again. |
 | Fades out | The clipboard now holds something else. |
 

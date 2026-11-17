@@ -26,12 +26,7 @@ open class PasteAction(private val showClipboardSummary: Boolean = true) : DumbA
         val presentation = event.presentation
         presentation.isEnabledAndVisible = event.project != null && targetDirectory(event) != null
         if (!showClipboardSummary || !presentation.isVisible) return
-        val summary =
-            when (val status = ClipboardWatcher.getInstance().status) {
-                is ClipboardStatus.Ready -> status.summary
-                is ClipboardStatus.Pasted -> status.summary
-                ClipboardStatus.None -> null
-            }
+        val summary = (ClipboardWatcher.getInstance().status as? ClipboardStatus.WithText)?.summary
         presentation.text = if (summary != null) message("action.CopyPasta.Paste.textWithSummary", summary) else templateText
     }
 
