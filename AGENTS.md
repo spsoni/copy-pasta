@@ -118,6 +118,22 @@ src/test/kotlin/   format/* are JUnit 4 unit tests; ide/* are light platform tes
   wrote. Kotlin's default `jvmDefault = enable` generated a bridge for it. `build.gradle.kts` now sets
   `jvmDefault = NO_COMPATIBILITY`, so no bridges are generated, and the warning is gone.
 
+- **2026-11-17 — faster CI on GitHub-hosted runners; llm01 rejected.** The llm01 self-hosted runner belongs to the
+  `spsoni-apps` org, and this is a public personal repo. A self-hosted runner on a public repo lets fork PRs run code
+  on the LAN, and personal repos can't restrict runners to specific workflows. Timing showed where the time went:
+  - the `needs: build` gate added 2 min;
+  - the verifier downloaded 4 IDEs (5 min), then spent 1m40s saving ~3 GB of Gradle cache;
+  - free-disk-space took 2 min;
+  - the `~/.pluginVerifier/ides` cache was empty (IntelliJ Platform Gradle Plugin 2.x resolves IDEs as Gradle
+    dependencies).
+
+  Changes:
+  - jobs run in parallel;
+  - pull requests verify with `-PverifyIdes=quick` (`current()` + `latest()`), main and releases with `recommended()`;
+  - the verifier job's Gradle cache is read-only;
+  - disk cleanup removes only Android and .NET;
+  - the dead cache step is gone.
+
 - **2026-11-17 — user docs live in `docs/`, not the GitHub wiki.** A wiki is a separate repo: it isn't versioned with
   the code, isn't reviewed in PRs, and drifts from the UI. The guide's screenshots are the owner's (macOS, light
   theme). Marketplace gallery screenshots are uploaded separately on the plugin page and should be larger captures; the
