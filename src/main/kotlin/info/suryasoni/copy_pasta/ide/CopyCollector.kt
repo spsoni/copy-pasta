@@ -14,6 +14,7 @@ import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileVisitor
 import info.suryasoni.copy_pasta.format.FileEntry
+import info.suryasoni.copy_pasta.format.FileMode
 import java.nio.file.Files
 import java.util.concurrent.Callable
 
@@ -51,7 +52,8 @@ class CopyCollector(private val project: Project) {
             val bytes = contentOf(file)
             total += bytes.size
             if (total > MAX_TOTAL_BYTES) throw CopyTooLargeException()
-            files += FileEntry(path, bytes, isExecutable(file))
+            val mode = PosixMode.of(file)
+            files += FileEntry(path, bytes, executable = mode?.let(FileMode::isOwnerExecutable) ?: isExecutable(file), mode = mode)
         }
         return Result(files, walk.skippedIgnored, skippedLarge, walk.skippedDuplicates)
     }

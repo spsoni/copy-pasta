@@ -1,5 +1,6 @@
 package info.suryasoni.copy_pasta.actions
 
+import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -13,11 +14,15 @@ import info.suryasoni.copy_pasta.CopyPastaBundle.message
 import info.suryasoni.copy_pasta.format.Crypto
 import info.suryasoni.copy_pasta.format.Envelope
 import info.suryasoni.copy_pasta.format.ZipCodec
+import info.suryasoni.copy_pasta.ide.ClipboardStatus
+import info.suryasoni.copy_pasta.ide.ClipboardWatcher
 import info.suryasoni.copy_pasta.ide.CopyCollector
 import info.suryasoni.copy_pasta.ide.CopyTooLargeException
 import info.suryasoni.copy_pasta.ide.Notifier
 import info.suryasoni.copy_pasta.ui.PassphraseDialog
+import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
+import java.lang.ref.SoftReference
 
 /** Copies the selected files and folders to the clipboard as Copy-Pasta text. */
 open class CopyAction(private val encrypted: Boolean = false) : DumbAwareAction() {
@@ -56,6 +61,9 @@ open class CopyAction(private val encrypted: Boolean = false) : DumbAwareAction(
                     Notifier.notify(project, message("copy.nothing"), NotificationType.WARNING)
                     return
                 }
+                // Mark first: setContents() triggers the watcher, and it should see this as our own copy, not as
+                // incoming text to paste.
+                ClipboardWatcher.getInstance().markCopied(copied)
                 CopyPasteManager.getInstance().setContents(StringSelection(copied))
                 val lines =
                     mutableListOf(
@@ -71,7 +79,27 @@ open class CopyAction(private val encrypted: Boolean = false) : DumbAwareAction(
                 val tooLongForChat = copied.length > CHAT_FRIENDLY_CHARS
                 if (tooLongForChat) lines += message("copy.longForChat")
                 val warn = tooLongForChat || collected.skippedLarge.isNotEmpty() || collected.skippedDuplicates > 0
-                Notifier.notify(project, lines.joinToString("<br>"), if (warn) NotificationType.WARNING else NotificationType.INFORMATION)
+                val actions =
+                    if (tooLongForChat) {
+                        // The notification can stay in the Notifications tool window for a long time, so it holds
+                        // the (possibly ~70 MB) text only softly, and falls back to the clipboard if it still matches.
+                        val held = SoftReference(copied)
+                        val fingerprint = ClipboardStatus.fingerprint(copied)
+                        arrayOf(
+                            NotificationAction.createSimpleExpiring(message("copy.saveAsFile")) {
+                                val again = held.get() ?: clipboardText()?.takeIf { ClipboardStatus.fingerprint(it) == fingerprint }
+                                if (again != null) SaveAsFile.save(project, again) else Notifier.error(project, message("save.gone"))
+                            },
+                        )
+                    } else {
+                        emptyArray()
+                    }
+                Notifier.notify(
+                    project,
+                    lines.joinToString("<br>"),
+                    if (warn) NotificationType.WARNING else NotificationType.INFORMATION,
+                    *actions,
+                )
             }
 
             override fun onThrowable(error: Throwable) {
@@ -88,6 +116,8 @@ open class CopyAction(private val encrypted: Boolean = false) : DumbAwareAction(
             }
         }.queue()
     }
+
+    private fun clipboardText(): String? = CopyPasteManager.getInstance().getContents<String>(DataFlavor.stringFlavor)
 
     companion object {
         /** Slack cuts messages at about 40k characters and Teams at about 28 KB; warn above this. */

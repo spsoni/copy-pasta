@@ -11,6 +11,7 @@ import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
 import info.suryasoni.copy_pasta.CopyPastaBundle.message
 import info.suryasoni.copy_pasta.format.FileEntry
+import info.suryasoni.copy_pasta.format.FileMode
 import info.suryasoni.copy_pasta.ide.PasteStatus
 import info.suryasoni.copy_pasta.ide.PlannedFile
 import javax.swing.JComponent
@@ -69,9 +70,14 @@ class PastePreviewDialog(project: Project, private val target: VirtualFile, priv
                 PasteStatus.IDENTICAL -> message("preview.status.identical")
                 PasteStatus.BLOCKED -> ""
             }
-        val executable = if (file.entry.executable) ", " + message("preview.executable") else ""
+        val permissions =
+            when (val label = FileMode.label(file.entry.mode, file.entry.executable)) {
+                null -> ""
+                FileMode.Label.Executable -> ", " + message("preview.executable")
+                is FileMode.Label.Bits -> ", " + label.bits
+            }
         // Starts with the status, never the path, so a path like "<html>…" can't switch Swing into HTML rendering.
-        return "[$status]  ${file.entry.path}  (${StringUtil.formatFileSize(file.entry.bytes.size.toLong())}$executable)"
+        return "[$status]  ${file.entry.path}  (${StringUtil.formatFileSize(file.entry.bytes.size.toLong())}$permissions)"
     }
 
     private fun updateOkButton() {

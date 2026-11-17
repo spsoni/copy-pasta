@@ -12,13 +12,14 @@ ticket.
 | 3 | | Review the preview → **Paste N Files** |
 
 > [!IMPORTANT]
-> **Paste reads your clipboard, not the chat window.** If you choose **Paste…** without copying the message first, Copy-Pasta
-> says *"The clipboard does not contain Copy-Pasta text"* and nothing is written.
+> **Paste reads your clipboard, not the chat window.** Copy the message first. When the clipboard holds Copy-Pasta
+> text, a clipboard icon appears in the status bar at the bottom of the IDE window.
 
 ## Contents
 
 - [Copy files](#copy-files)
 - [Paste files](#paste-files)
+- [The status bar icon](#the-status-bar-icon)
 - [Encrypt with a passphrase](#encrypt-with-a-passphrase)
 - [Long text and chat limits](#long-text-and-chat-limits)
 - [What gets copied](#what-gets-copied)
@@ -46,8 +47,14 @@ large selections don't freeze the IDE.
    ignores it. Chat apps often collapse long messages, so expand the message before you select it.
 2. In the **Project** view, right-click the folder to paste into and choose **Copy-Pasta | Paste…**. You can also use
    **Edit | Paste Files from Copy-Pasta…**. If you right-click a file, the paste goes into the folder containing it.
-   With nothing selected, it goes into the project root.
+   With nothing selected, it goes into the project root. When the clipboard holds Copy-Pasta text, the menu item
+   shows what it contains, for example **Paste… (3 files, 4.1 KB)**.
 3. Review the preview and choose **Paste N Files**.
+
+If the clipboard holds something else when you choose **Paste…**, the **Paste Copy-Pasta Text** dialog opens instead.
+Paste the message into it, or choose **Open File…** to load a `.txt` attachment. A message that is cut off or damaged
+is reported in the dialog, so you can fix it before going on. If the clipboard text turns out to be cut off, the error
+notification offers **Paste Text or Open File…**, which opens the same dialog.
 
 ![The Paste Files preview listing each file as new, with a checkbox](images/paste-preview.png)
 
@@ -58,7 +65,8 @@ The preview marks every file:
 | **new** | No file exists at that path yet. | Yes |
 | **overwrite** | A file exists there with different content. It will be replaced. | Yes |
 | **identical** | A file exists there with the same content. Nothing to do. | No |
-| **executable** | The file has the executable bit set (for example a shell script). | — |
+| **executable** | The file will be executable (`rwxr-xr-x`), for example a shell script. | — |
+| **rw-------** and the like | The file will get these unusual permissions, for example a private key. See [What gets copied](#what-gets-copied). | — |
 
 Uncheck anything you don't want. Nothing is written until you confirm. Afterwards, **Show** in the notification
 opens the pasted files.
@@ -66,6 +74,30 @@ opens the pasted files.
 For your safety, the paste skips entries that would land outside the target folder, write into `.git` or another
 version-control folder, or clash with an existing file or folder of a different kind. The preview tells you when
 this happens.
+
+## The status bar icon
+
+A clipboard icon in the status bar shows when there is Copy-Pasta text to paste:
+
+| Icon | Meaning |
+|---|---|
+| Blue clipboard that blinks a few times | New Copy-Pasta text is on the clipboard. Hover over it to see what it contains. |
+| Blue clipboard, steady, right after you copy | Your own copy is ready to send. |
+| Grey | This text has already been pasted. |
+| Fades out | The clipboard now holds something else. |
+
+Click the icon for a menu:
+
+- **Paste into Project Root…** and **Paste into Folder…** open the usual preview first.
+- **Save as File…** saves the text as a `.txt` file to send as an attachment, named with the local date and time,
+  for example `copy-pasta-2026-11-17-135212.txt`.
+- **Clear from Clipboard** removes Copy-Pasta text from the clipboard and from the IDE's clipboard history
+  (**Edit | Paste from History**). Nothing else you copied is touched, and the clipboard goes back to whatever you
+  copied before. This is useful after pasting sensitive files.
+
+The IDE notices text copied in another app when you switch back to its window, so the icon appears at that moment.
+Copy-Pasta changes your clipboard only when you choose **Clear from Clipboard**. To hide the icon, right-click the
+status bar and untick **Copy-Pasta Clipboard**.
 
 ## Encrypt with a passphrase
 
@@ -92,9 +124,10 @@ start cutting messages at around 35,000 characters, so Copy-Pasta warns you abov
 
 ![A notification warning that 37,470 characters is long for chat](images/long-text-warning.png)
 
-For a long copy, send it by email, or save the text as a `.txt` file and attach it. The recipient opens the file and
-copies its contents. If a message does get cut off, Paste says it is incomplete, with the number of characters that
-arrived. It never writes broken files.
+For a long copy, choose **Save as File…** in that notification and send the `.txt` file as an attachment, or send the
+text by email. The recipient chooses **Copy-Pasta | Paste…**, then **Open File…** in the dialog that opens. If a
+message does get cut off, Paste says it is incomplete, with the number of characters that arrived. It never writes
+broken files.
 
 Limits: 10 MB per file and 50 MB per copy. Copy-Pasta is meant for snippets, reproducers and small projects, not for
 replacing a repository.
@@ -109,7 +142,30 @@ Copy-Pasta uses the IDE's own idea of what belongs to the project, so there's no
 - **Always included:** anything you selected explicitly, even if it's ignored or excluded. To copy a `build/`
   folder, select it.
 - **Unsaved changes** in open editors are included, so what you see is what you send.
-- The **executable bit** is kept. Other permissions, timestamps and empty folders are not.
+- **Permissions** (macOS and Linux): the read, write and execute bits for owner, group and others travel with each
+  file, so scripts stay runnable and private files such as keys stay private. On paste, Copy-Pasta applies them with
+  four safety rules:
+  - the owner can always read and write the file, so it can be edited and overwritten by a later paste;
+  - the file is never writable by group or others;
+  - group and others never get more access than your system gives new files (your umask) or than the file you're
+    pasting over already gives them, so if your new files are normally private, pasted ones are too;
+  - special bits (setuid, setgid, sticky) are never applied.
+
+  With the usual umask (022):
+
+  | Sender's file | Pasted file |
+  |---|---|
+  | `rw-r--r--` (644) | `rw-r--r--` |
+  | `rwxr-xr-x` (755), e.g. a script | `rwxr-xr-x`, flagged **executable** in the preview |
+  | `rw-------` (600), e.g. a private key | `rw-------`, flagged in the preview |
+  | `rwxrwxrwx` (777) | `rwxr-xr-x` |
+  | `r--r--r--` (444), read-only | `rw-r--r--` |
+
+  The preview flags every file whose permissions aren't the usual `rw-r--r--`. Pasting over an existing file gives it
+  the sender's permissions within the same rules, and a file whose content matches but whose permissions would
+  change is marked *overwrite*, not *identical*. On Windows, permissions are neither recorded nor applied. Text from Copy-Pasta 2.0
+  carries only the executable flag, which makes the file executable for its owner.
+- **Not copied:** owners, timestamps and empty folders.
 
 ## Undo a paste
 
@@ -121,8 +177,8 @@ also works if a paste stopped part-way through.
 
 | Message | What to do |
 |---|---|
-| *The clipboard does not contain Copy-Pasta text* | Copy the whole block, including both the BEGIN and END lines. |
-| *The Copy-Pasta text is incomplete* | The chat app cut the message. Ask for it by email or as a `.txt` attachment. |
+| *This isn't Copy-Pasta text* (in the Paste dialog) | Paste the whole message, including both the BEGIN and END lines. |
+| *The Copy-Pasta text is incomplete* | The chat app cut the message. Ask the sender to use **Save as File…** and send the file. |
 | *The Copy-Pasta text is damaged* | Something changed the text in transit. Ask the sender to copy it again. |
 | *Made by a newer version of Copy-Pasta* | Update the plugin: **Settings \| Plugins \| Installed**. |
 | *Wrong passphrase, or the text was changed* | Check the passphrase with the sender. If it's right, the text was altered: ask for it again. |
