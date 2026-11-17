@@ -80,9 +80,9 @@ A clipboard icon in the status bar shows when there is Copy-Pasta text to paste:
 
 | Icon | Meaning |
 |---|---|
-| Appears with a short pulse | New Copy-Pasta text is on the clipboard. Hover over it to see what it contains. |
-| Appears steadily after you copy | Your own copy is ready to send. Clicking it does nothing, so you don't paste your files back by accident. |
-| Dimmed | This text has already been pasted. Click to paste it again. |
+| Blue clipboard that blinks a few times | New Copy-Pasta text is on the clipboard. Hover over it to see what it contains. |
+| Blue clipboard, steady, right after you copy | Your own copy is ready to send. Clicking it does nothing, so you don't paste your files back by accident. |
+| Grey | This text has already been pasted. Click to paste it again. |
 | Fades out | The clipboard now holds something else. |
 
 Click the icon to paste into the project root, after the usual preview. To paste somewhere else, right-click that

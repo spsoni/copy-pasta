@@ -1,6 +1,5 @@
 package info.suryasoni.copy_pasta.ui
 
-import com.intellij.icons.AllIcons
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.IconLoader
@@ -36,7 +35,9 @@ class ClipboardStatusWidgetFactory : StatusBarWidgetFactory {
  * it pastes into the project root (after the usual preview).
  */
 class ClipboardStatusWidget(private val project: Project) : CustomStatusBarWidget {
-    private val readyIcon = AllIcons.Actions.MenuPaste
+    // The plugin's own artwork in colour (with a dark-theme variant), so the icon stands out among the status bar's
+    // grey icons. Grey means "nothing new": the pulse alternates between the two.
+    private val readyIcon = IconLoader.getIcon("/icons/clipboardReady.svg", ClipboardStatusWidget::class.java)
     private val dimIcon = IconLoader.getDisabledIcon(readyIcon)
     private val label =
         JBLabel(readyIcon).apply {
@@ -108,7 +109,7 @@ class ClipboardStatusWidget(private val project: Project) : CustomStatusBarWidge
         return message(if (encrypted) "widget.tooltip.readyEncrypted" else "widget.tooltip.ready", what)
     }
 
-    /** Three quick blinks, then steady: noticeable once, never distracting. */
+    /** A few blinks between colour and grey, then steady colour: noticeable once, never distracting. */
     private fun pulse() {
         var ticks = 0
         animation =
@@ -140,8 +141,10 @@ class ClipboardStatusWidget(private val project: Project) : CustomStatusBarWidge
 
     companion object {
         const val ID = "CopyPasta.ClipboardStatus"
-        private const val PULSE_MS = 180
-        private const val PULSE_TICKS = 6
+
+        // Four blinks over two seconds: easy to catch out of the corner of an eye, then steady.
+        private const val PULSE_MS = 250
+        private const val PULSE_TICKS = 8
         private const val FADE_MS = 700
     }
 }
