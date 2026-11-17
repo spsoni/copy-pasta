@@ -34,6 +34,7 @@ src/main/kotlin/info/suryasoni/copy_pasta/
   ui/       PastePreviewDialog, PassphraseDialog (Kotlin UI DSL v2).
   actions/  CopyAction / CopyEncryptedAction, PasteAction (Project view group + Edit menu entry).
   CopyPastaBundle.kt + resources/messages/CopyPastaBundle.properties   All UI text, including action names.
+docs/user-guide.md + docs/images/   End-user documentation (linked from README). Update it with any UI change.
 src/main/resources/META-INF/   plugin.xml, pluginIcon.svg, pluginIcon_dark.svg (40×40, original artwork).
 src/test/kotlin/   format/* are JUnit 4 unit tests; ide/* are light platform tests (BasePlatformTestCase).
 ```
@@ -78,6 +79,11 @@ src/test/kotlin/   format/* are JUnit 4 unit tests; ide/* are light platform tes
 `build.yml` (push to main and PRs) runs build, `check`, Qodana and the Plugin Verifier. It no longer drafts releases.
 
 ## Decisions & lessons log (newest first — keep this current)
+
+- **2026-11-17 — user docs live in `docs/`, not the GitHub wiki.** A wiki is a separate repo: it isn't versioned with
+  the code, isn't reviewed in PRs, and drifts from the UI. The guide's screenshots are the owner's (macOS, light
+  theme). Marketplace gallery screenshots are uploaded separately on the plugin page and should be larger captures; the
+  guide's crops (about 430–660 px wide) are too small for the gallery.
 
 - **2026-11-17 — relicensed Apache 2.0 → MIT** (owner's request; the owner is the sole author of every commit, so no
   contributor sign-off was needed). The store description gained a "Why you'll want it" section with use cases.

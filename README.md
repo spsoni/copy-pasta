@@ -40,6 +40,10 @@ Two clicks to copy and two to paste, and you see every file before it touches yo
 Works in IntelliJ IDEA, PyCharm, WebStorm, GoLand, Rider, CLion, PhpStorm, RubyMine, DataGrip, Android Studio and other JetBrains IDEs, version 2025.3 or later.
 <!-- Plugin description end -->
 
+![The Paste Files preview: every file is listed as new, overwrite or identical before anything is written](docs/images/paste-preview.png)
+
+**[User guide](docs/user-guide.md)**: copying, pasting, encryption, chat limits, undo and troubleshooting.
+
 ## Installation
 
 - **JetBrains Marketplace**: Settings | Plugins | Marketplace, then search for "Copy-Pasta".
