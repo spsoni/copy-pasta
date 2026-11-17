@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-11-17
+
 ### Added
 
 - A status bar icon that appears while the clipboard holds Copy-Pasta text. It pulses once when new text arrives, dims
@@ -73,7 +75,8 @@ A redesign focused on safe pasting and chat-proof text. **Text copied with 1.x c
 
 - Initial release: copy files and folders to the clipboard as Base64 text and paste them back, with optional encryption.
 
-[Unreleased]: https://github.com/spsoni/copy-pasta/compare/v2.0.1...HEAD
+[Unreleased]: https://github.com/spsoni/copy-pasta/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/spsoni/copy-pasta/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/spsoni/copy-pasta/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/spsoni/copy-pasta/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/spsoni/copy-pasta/commits/v1.0.0
