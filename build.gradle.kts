@@ -109,7 +109,14 @@ intellijPlatform {
 
     pluginVerification {
         ides {
-            recommended()
+            // -PverifyIdes=quick (pull requests): the IDE we compile against, already downloaded, plus the newest
+            // release. Otherwise (main, releases): JetBrains' recommended set, one IDE per supported major version.
+            if (providers.gradleProperty("verifyIdes").orNull == "quick") {
+                current()
+                latest()
+            } else {
+                recommended()
+            }
         }
     }
 }

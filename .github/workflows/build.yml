@@ -1,8 +1,9 @@
-# CI for pushes to main and pull requests:
+# CI for pushes to main and pull requests. The four jobs run in parallel:
 # - build the plugin and upload the ZIP as an artifact,
 # - run `check` (ktlint + unit/platform tests + Kover report),
 # - run Qodana inspections,
-# - run the IntelliJ Plugin Verifier against the supported IDEs.
+# - run the IntelliJ Plugin Verifier: on pull requests against the compile target and the newest IDE only
+#   (-PverifyIdes=quick), on main against the full recommended set (as release.yml does).
 # Releases are tag-based: see release.yml.
 
 name: Build
@@ -53,7 +54,6 @@ jobs:
 
   test:
     name: Test
-    needs: [ build ]
     runs-on: ubuntu-latest
     steps:
       - name: Fetch Sources
@@ -80,7 +80,6 @@ jobs:
 
   inspectCode:
     name: Inspect code
-    needs: [ build ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -112,14 +111,20 @@ jobs:
 
   verify:
     name: Verify plugin
-    needs: [ build ]
     runs-on: ubuntu-latest
     steps:
+      # The verified IDEs need several GB. Removing Android and .NET frees enough. Also removing Haskell, Docker
+      # images and swap, as before, took over two minutes.
       - name: Maximize Build Space
         uses: jlumbroso/free-disk-space@main
         with:
-          preinstalled-runtimes: false
+          android: true
+          dotnet: true
+          haskell: false
           large-packages: false
+          docker-images: false
+          tool-cache: false
+          swap-storage: false
 
       - name: Fetch Sources
         uses: actions/checkout@v7
@@ -130,17 +135,15 @@ jobs:
           distribution: zulu
           java-version: 21
 
+      # Read-only: the downloaded IDEs would add ~3 GB to the Gradle cache, and saving that took over a minute and a
+      # half per run. The Test and Build jobs keep the shared dependency cache warm.
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
-
-      - name: Setup Plugin Verifier IDEs Cache
-        uses: actions/cache@v6
         with:
-          path: ~/.pluginVerifier/ides
-          key: plugin-verifier-${{ hashFiles('gradle.properties') }}
+          cache-read-only: true
 
       - name: Run Plugin Verification tasks
-        run: ./gradlew verifyPlugin -Dplugin.verifier.home.dir=~/.pluginVerifier
+        run: ./gradlew verifyPlugin ${{ github.event_name == 'pull_request' && '-PverifyIdes=quick' || '' }}
 
       - name: Collect Plugin Verifier Result
         if: ${{ always() }}

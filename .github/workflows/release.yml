@@ -65,14 +65,8 @@ jobs:
       - name: Test and build
         run: ./gradlew check buildPlugin
 
-      - name: Setup Plugin Verifier IDEs Cache
-        uses: actions/cache@v6
-        with:
-          path: ~/.pluginVerifier/ides
-          key: plugin-verifier-${{ hashFiles('gradle.properties') }}
-
       - name: Verify plugin
-        run: ./gradlew verifyPlugin -Dplugin.verifier.home.dir=~/.pluginVerifier
+        run: ./gradlew verifyPlugin
 
       - name: Sign plugin
         if: ${{ env.CERTIFICATE_CHAIN != '' && env.PRIVATE_KEY != '' }}
