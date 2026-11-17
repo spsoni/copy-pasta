@@ -122,6 +122,9 @@ jobs:
         with:
           cache-default-branch-only: true
           args: --project-dir intellij
+          # Inspect the whole project at the PR's commit. PR mode also analyses the base commit, which breaks
+          # whenever paths move (the monorepo PR had no intellij/ on its base), and the project is small.
+          pr-mode: false
 
   verify:
     name: Verify plugin
