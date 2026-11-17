@@ -5,7 +5,7 @@ version: 2
 updates:
   # Maintain dependencies for Gradle dependencies
   - package-ecosystem: "gradle"
-    directory: "/"
+    directory: "/intellij"
     schedule:
       interval: "weekly"
   # Maintain dependencies for GitHub Actions

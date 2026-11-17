@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
-# Self-validation before every commit: ktlint + unit tests when Kotlin/Gradle files are staged.
+# Self-validation before every commit: ktlint + unit tests when the JetBrains plugin (intellij/) or the shared format
+# spec (spec/) is staged.
 # Enable with:  make hooks  (sets core.hooksPath=.githooks).
 # Bypass in an emergency with:  git commit --no-verify
 set -uo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
-staged="$(git diff --cached --name-only --diff-filter=ACM)"
+staged="$(git diff --cached --name-only --diff-filter=ACMR)"
 
-if ! echo "$staged" | grep -qE '\.(kt|kts|toml|properties)$|^src/main/resources/'; then
+if ! echo "$staged" | grep -qE '^intellij/.*\.(kt|kts|toml|properties)$|^intellij/src/main/resources/|^spec/'; then
   exit 0
 fi
 
-cd "$ROOT" || exit 1
+cd "$ROOT/intellij" || exit 1
 echo "▶ ktlint"
 if ! ./gradlew --quiet --console=plain ktlintCheck; then
   echo "  → run 'make format' to fix formatting" >&2

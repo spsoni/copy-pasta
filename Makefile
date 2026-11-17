@@ -2,7 +2,8 @@
 # Gradle comes from the wrapper; the only host requirement is JDK 21.
 # On macOS, `make setup-mac` installs everything with Homebrew (see Brewfile).
 
-GRADLE := ./gradlew --console=plain
+# The JetBrains plugin lives in intellij/ (its own Gradle wrapper and build).
+GRADLE := intellij/gradlew -p intellij --console=plain
 
 .DEFAULT_GOAL := help
 .PHONY: help setup-mac hooks check test lint format build run verify clean release
@@ -41,7 +42,7 @@ lint: ## ktlint check
 format: ## Auto-format Kotlin sources with ktlint
 	$(GRADLE) ktlintFormat
 
-build: ## Build the plugin ZIP into build/distributions/
+build: ## Build the plugin ZIP into intellij/build/distributions/
 	$(GRADLE) buildPlugin
 
 run: ## Launch a sandbox IDE with the plugin installed
@@ -58,7 +59,7 @@ release: ## Cut a release: make release VERSION=X.Y.Z (bump version, date CHANGE
 	@echo "$(VERSION)" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$$' || { echo "VERSION must be SemVer, e.g. 2.0.0 or 2.1.0-beta.1"; exit 1; }
 	@test -z "$$(git status --porcelain)" || { echo "working tree not clean"; exit 1; }
 	@if git rev-parse -q --verify "refs/tags/v$(VERSION)" >/dev/null; then echo "tag v$(VERSION) already exists"; exit 1; fi
-	sed -i.bak -E 's/^pluginVersion = .*/pluginVersion = $(VERSION)/' gradle.properties && rm -f gradle.properties.bak
+	sed -i.bak -E 's/^pluginVersion = .*/pluginVersion = $(VERSION)/' intellij/gradle.properties && rm -f intellij/gradle.properties.bak
 	$(GRADLE) -q patchChangelog
 	git commit -am "Release v$(VERSION)"
 	git tag -a "v$(VERSION)" -m "Copy-Pasta $(VERSION)"
