@@ -10,10 +10,15 @@ GRADLE := ./gradlew --console=plain
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
 
-setup-mac: ## macOS: install dev dependencies with Homebrew (JDK 21, Gradle, gh, linters) + git hook
+setup-mac: ## macOS: install dev dependencies with Homebrew (JDK 21, gh, linters) + git hook
 	@test "$$(uname -s)" = Darwin || { echo "setup-mac is for macOS; on Linux install openjdk-21-jdk-headless"; exit 1; }
 	@command -v brew >/dev/null || { echo "Homebrew not found: install it from https://brew.sh"; exit 1; }
-	brew bundle --file=Brewfile
+	@# Bottles for some JDK dependencies (glib, gettext, fontconfig, python, openssl) hard-code the default prefix
+	@prefix=$$(brew --prefix); case "$$(uname -m) $$prefix" in "arm64 /opt/homebrew"|"x86_64 /usr/local") ;; *) \
+	  echo "warning: Homebrew is at $$prefix, not its default prefix, so some JDK dependencies (glib, python," >&2; \
+	  echo "  openssl, ...) build from source: expect 30-60 minutes. Reinstall Homebrew at its default prefix to use bottles." >&2;; esac
+	@# --verbose streams install output; without it brew bundle stays silent until each batch finishes
+	brew bundle --verbose --file=Brewfile
 	@# openjdk@21 is keg-only: link it where java_home, Gradle and IntelliJ look for JDKs (per user, no sudo)
 	mkdir -p "$$HOME/Library/Java/JavaVirtualMachines"
 	ln -sfn "$$(brew --prefix openjdk@21)/libexec/openjdk.jdk" "$$HOME/Library/Java/JavaVirtualMachines/openjdk-21.jdk"

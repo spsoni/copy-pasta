@@ -53,9 +53,10 @@ Size limits: 10 MB per file and 50 MB per copy. A notification warns when the te
 
 ## Development
 
-Requires JDK 21; Gradle comes from the wrapper. On macOS, `make setup-mac` installs JDK 21, Gradle, the GitHub CLI and
-the workflow linters with Homebrew (see [Brewfile](Brewfile)) and enables the pre-commit hook. Run `make help` to list
-every target.
+Requires JDK 21; Gradle comes from the wrapper. On macOS, `make setup-mac` installs JDK 21, the GitHub CLI and the
+workflow linters with Homebrew (see [Brewfile](Brewfile)) and enables the pre-commit hook. It takes a few minutes with
+Homebrew at its default prefix (`/opt/homebrew`); elsewhere, some JDK dependencies build from source. Run `make help` to
+list every target.
 
 ```bash
 make check     # ktlint + unit and platform tests

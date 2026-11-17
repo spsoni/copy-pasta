@@ -13,10 +13,11 @@ learns something.
 
 - **JDK 21** (installed on dev01 as `openjdk-21-jdk-headless`; `librsvg2-bin` for rendering icon previews). Gradle comes
   from the wrapper.
-- **macOS: `make setup-mac`** installs the `Brewfile` with `brew bundle` (openjdk@21, gradle, gh, actionlint,
-  shellcheck, librsvg), links the keg-only JDK into `~/Library/Java/JavaVirtualMachines` so `java_home`, Gradle and
-  IntelliJ find it, and enables the hook. Add new host tools to the Brewfile. Makefile recipes must work with both GNU
-  and BSD tools: macOS `sed -i` needs a suffix, so use `sed -i.bak … && rm -f file.bak`.
+- **macOS: `make setup-mac`** installs the `Brewfile` with `brew bundle --verbose` (openjdk@21, gh, actionlint,
+  shellcheck), links the keg-only JDK into `~/Library/Java/JavaVirtualMachines` so `java_home`, Gradle and IntelliJ
+  find it, and enables the hook. Add new host tools to the Brewfile only if they're worth their dependency tree (see the
+  2026-11-17 setup-mac entry). Render icon previews with the built-in `sips`, not librsvg. Makefile recipes must work
+  with both GNU and BSD tools: macOS `sed -i` needs a suffix, so use `sed -i.bak … && rm -f file.bak`.
 - Prefer the **Makefile**: `make help`. `make check` = ktlint + unit and platform tests + Kover (what CI runs).
 - **Run `make format` before committing.** The pre-commit hook (`.githooks/`, enabled by `make hooks`) blocks commits
   that fail ktlint or the tests. Bypass only in an emergency with `git commit --no-verify`.
@@ -75,6 +76,20 @@ src/test/kotlin/   format/* are JUnit 4 unit tests; ide/* are light platform tes
 `build.yml` (push to main and PRs) runs build, `check`, Qodana and the Plugin Verifier. It no longer drafts releases.
 
 ## Decisions & lessons log (newest first — keep this current)
+
+- **2026-11-17 — `make setup-mac` looked hung.** It was compiling from source. Homebrew installed outside its default
+  prefix (here `~/homebrew`) can't pour bottles that hard-code `/opt/homebrew/Cellar`. openjdk@21 needs glib, gettext,
+  fontconfig and libx11 (through harfbuzz and cairo), and building those needs python and openssl from source too.
+  librsvg added gdk-pixbuf, gobject-introspection and libthai. `brew bundle` buffers install output until a batch
+  finishes, so nothing showed for many minutes. Fixes:
+  - `--verbose` streams progress;
+  - the recipe warns when the prefix isn't the default;
+  - librsvg was dropped (`sips` renders the SVG icons);
+  - gradle was dropped: it pulled in a second JDK (openjdk 25) only for wrapper upgrades, which
+    `./gradlew wrapper --gradle-version X` handles.
+
+  The owner is moving Homebrew to `/opt/homebrew` instead of switching to a JDK cask (temurin@21 is a `.pkg` and needs
+  sudo).
 
 - **2026-11-17 — 2.0 redesign (owner-approved plan).** Critical review: the 1.x and 2.0-cleanup design was strong crypto
   around a shared default key, hand-rolled excludes, `java.io` writes that bypassed the VFS, a blind overwriting paste and
