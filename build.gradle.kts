@@ -23,6 +23,9 @@ kotlin {
     jvmToolchain(21)
     compilerOptions {
         apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_2
+        // Don't generate compatibility bridges for interface default methods. They overrode the deprecated
+        // StatusBarWidget.getPresentation(PlatformType) in our widget, which the Plugin Verifier flags.
+        jvmDefault = org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode.NO_COMPATIBILITY
     }
 }
 

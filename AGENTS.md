@@ -114,6 +114,10 @@ src/test/kotlin/   format/* are JUnit 4 unit tests; ide/* are light platform tes
 
   Lesson (again): get an independent review for anything that runs on untrusted input automatically.
 
+  Lesson: the verifier flagged a deprecated `StatusBarWidget.getPresentation(PlatformType)` override that we never
+  wrote. Kotlin's default `jvmDefault = enable` generated a bridge for it. `build.gradle.kts` now sets
+  `jvmDefault = NO_COMPATIBILITY`, so no bridges are generated, and the warning is gone.
+
 - **2026-11-17 — user docs live in `docs/`, not the GitHub wiki.** A wiki is a separate repo: it isn't versioned with
   the code, isn't reviewed in PRs, and drifts from the UI. The guide's screenshots are the owner's (macOS, light
   theme). Marketplace gallery screenshots are uploaded separately on the plugin page and should be larger captures; the
