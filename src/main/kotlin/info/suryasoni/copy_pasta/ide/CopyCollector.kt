@@ -14,6 +14,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileVisitor
 import info.suryasoni.copy_pasta.format.FileEntry
 import java.nio.file.Files
+import java.util.concurrent.Callable
 
 class CopyTooLargeException(val totalBytes: Long) : Exception("selection too large")
 
@@ -28,41 +29,9 @@ class CopyCollector(private val project: Project) {
         val totalBytes: Long get() = files.sumOf { it.bytes.size.toLong() }
     }
 
+    /** Call from a background thread: it uses cancellable read actions that restart if a write action interrupts. */
     fun collect(roots: List<VirtualFile>, indicator: ProgressIndicator? = null): Result {
-        var skippedIgnored = 0
-        val found = LinkedHashMap<String, VirtualFile>() // archive path -> file (first one wins on clashes)
-
-        ReadAction.run<RuntimeException> {
-            val fileIndex = ProjectFileIndex.getInstance(project)
-            val changes = ChangeListManager.getInstance(project)
-            val registry = FileTypeRegistry.getInstance()
-
-            for (root in roots.filter { it.isValid }) {
-                // Exclusion and VCS-ignore are inherited by everything below. If the user explicitly selected an
-                // excluded/ignored folder, they want its contents, so only the name-based global ignore list applies.
-                val rootIgnored = fileIndex.isExcluded(root) || changes.isIgnoredFile(root)
-                VfsUtilCore.visitChildrenRecursively(
-                    root,
-                    object : VirtualFileVisitor<Unit>(NO_FOLLOW_SYMLINKS) {
-                        override fun visitFile(file: VirtualFile): Boolean {
-                            indicator?.checkCanceled()
-                            if (file != root) {
-                                val ignored =
-                                    file.`is`(VFileProperty.SYMLINK) ||
-                                        registry.isFileIgnored(file) ||
-                                        (!rootIgnored && (fileIndex.isExcluded(file) || changes.isIgnoredFile(file)))
-                                if (ignored) {
-                                    skippedIgnored++
-                                    return false
-                                }
-                            }
-                            if (!file.isDirectory) found.putIfAbsent(archivePath(root, file), file)
-                            return true
-                        }
-                    },
-                )
-            }
-        }
+        val (found, skippedIgnored) = ReadAction.nonBlocking(Callable { walk(roots, indicator) }).executeSynchronously()
 
         val files = ArrayList<FileEntry>(found.size)
         val skippedLarge = ArrayList<String>()
@@ -81,16 +50,58 @@ class CopyCollector(private val project: Project) {
         return Result(files, skippedIgnored, skippedLarge)
     }
 
+    /**
+     * Finds the files to copy, keyed by archive path (the first one wins on clashes), plus the number of skipped items.
+     * It has no side effects, because a non-blocking read action re-runs it if a write action interrupts.
+     */
+    private fun walk(roots: List<VirtualFile>, indicator: ProgressIndicator?): Pair<Map<String, VirtualFile>, Int> {
+        var skippedIgnored = 0
+        val found = LinkedHashMap<String, VirtualFile>()
+        val fileIndex = ProjectFileIndex.getInstance(project)
+        val changes = ChangeListManager.getInstance(project)
+        val registry = FileTypeRegistry.getInstance()
+
+        for (root in roots.filter { it.isValid }) {
+            // Exclusion and VCS-ignore are inherited by everything below. If the user explicitly selected an
+            // excluded/ignored folder, they want its contents, so only the name-based global ignore list applies.
+            val rootIgnored = fileIndex.isExcluded(root) || changes.isIgnoredFile(root)
+            VfsUtilCore.visitChildrenRecursively(
+                root,
+                object : VirtualFileVisitor<Unit>(NO_FOLLOW_SYMLINKS) {
+                    override fun visitFile(file: VirtualFile): Boolean {
+                        indicator?.checkCanceled()
+                        if (file != root) {
+                            val ignored =
+                                file.`is`(VFileProperty.SYMLINK) ||
+                                    registry.isFileIgnored(file) ||
+                                    (!rootIgnored && (fileIndex.isExcluded(file) || changes.isIgnoredFile(file)))
+                            if (ignored) {
+                                skippedIgnored++
+                                return false
+                            }
+                        }
+                        if (!file.isDirectory) found.putIfAbsent(archivePath(root, file), file)
+                        return true
+                    }
+                },
+            )
+        }
+        return found to skippedIgnored
+    }
+
     private fun archivePath(root: VirtualFile, file: VirtualFile): String =
         if (file == root) root.name else root.name + "/" + VfsUtilCore.getRelativePath(file, root, '/')
 
     /** Disk content, or the editor's text when the document has unsaved changes. */
     private fun contentOf(file: VirtualFile): ByteArray {
         val unsavedText =
-            ReadAction.compute<String?, RuntimeException> {
-                val documents = FileDocumentManager.getInstance()
-                documents.getCachedDocument(file)?.takeIf(documents::isDocumentUnsaved)?.text
-            } ?: return file.contentsToByteArray()
+            ReadAction
+                .nonBlocking(
+                    Callable {
+                        val documents = FileDocumentManager.getInstance()
+                        documents.getCachedDocument(file)?.takeIf(documents::isDocumentUnsaved)?.text
+                    },
+                ).executeSynchronously() ?: return file.contentsToByteArray()
         val separator = file.detectedLineSeparator ?: "\n"
         return (file.bom ?: ByteArray(0)) + unsavedText.replace("\n", separator).toByteArray(file.charset)
     }

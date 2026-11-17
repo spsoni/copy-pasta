@@ -1,11 +1,22 @@
 package info.suryasoni.copy_pasta.ide
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.PsiTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 class CopyCollectorTest : BasePlatformTestCase() {
+    /** Runs like production: on a background thread, while the EDT keeps dispatching events. */
+    private fun collect(vararg roots: VirtualFile): CopyCollector.Result {
+        val future = ApplicationManager.getApplication().executeOnPooledThread<CopyCollector.Result> {
+            CopyCollector(project).collect(roots.toList())
+        }
+        return PlatformTestUtil.waitForFuture(future, 30_000)
+    }
+
     fun `test skips excluded and globally ignored files but honours explicit selections`() {
         val temp = myFixture.tempDirFixture
         val root = temp.findOrCreateDir("proj")
@@ -15,11 +26,11 @@ class CopyCollectorTest : BasePlatformTestCase() {
         val out = temp.getFile("proj/out")!!
         PsiTestUtil.addExcludedRoot(module, out)
         try {
-            val result = CopyCollector(project).collect(listOf(root))
+            val result = collect(root)
             assertEquals(listOf("proj/src/Main.kt"), result.files.map { it.path })
             assertEquals(2, result.skippedIgnored)
 
-            val explicit = CopyCollector(project).collect(listOf(out))
+            val explicit = collect(out)
             assertEquals(listOf("out/Main.class"), explicit.files.map { it.path })
         } finally {
             PsiTestUtil.removeExcludedRoot(module, out)
@@ -31,7 +42,7 @@ class CopyCollectorTest : BasePlatformTestCase() {
         val document = FileDocumentManager.getInstance().getDocument(file)!!
         WriteCommandAction.runWriteCommandAction(project) { document.setText("in editor") }
 
-        val result = CopyCollector(project).collect(listOf(file))
+        val result = collect(file)
         assertEquals("a.txt", result.files.single().path)
         assertEquals("in editor", result.files.single().bytes.decodeToString())
     }
@@ -42,7 +53,6 @@ class CopyCollectorTest : BasePlatformTestCase() {
         val b = temp.findOrCreateDir("two")
         temp.createFile("two/y.txt", "2")
 
-        val paths = CopyCollector(project).collect(listOf(a, b)).files.map { it.path }
-        assertEquals(listOf("x.txt", "two/y.txt"), paths)
+        assertEquals(listOf("x.txt", "two/y.txt"), collect(a, b).files.map { it.path })
     }
 }

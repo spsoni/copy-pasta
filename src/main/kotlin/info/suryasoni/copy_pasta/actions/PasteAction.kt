@@ -7,7 +7,7 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.application.ReadAction
-import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
@@ -27,6 +27,7 @@ import info.suryasoni.copy_pasta.ide.PlannedFile
 import info.suryasoni.copy_pasta.ui.PassphraseDialog
 import info.suryasoni.copy_pasta.ui.PastePreviewDialog
 import java.awt.datatransfer.DataFlavor
+import java.util.concurrent.Callable
 
 /**
  * Recreates files from Copy-Pasta text on the clipboard: it decodes, shows a preview, then writes into the selected
@@ -60,7 +61,7 @@ class PasteAction : DumbAwareAction() {
                 val zip = passphrase?.let { Crypto.decrypt(decoded.payload, it) } ?: decoded.payload
                 val files = ZipCodec.decode(zip)
                 indicator.checkCanceled()
-                planned = ReadAction.compute<List<PlannedFile>, RuntimeException> { PasteWriter.plan(target, files) }
+                planned = ReadAction.nonBlocking(Callable { PasteWriter.plan(target, files) }).executeSynchronously()
             }
 
             override fun onSuccess() {
@@ -98,7 +99,7 @@ class PasteAction : DumbAwareAction() {
     private fun reveal(project: Project, files: List<VirtualFile>) {
         val first = files.firstOrNull { it.isValid } ?: return
         if (files.size == 1) {
-            FileEditorManager.getInstance(project).openFile(first, true)
+            OpenFileDescriptor(project, first).navigate(true)
         } else {
             ProjectView.getInstance(project).select(null, first, true)
         }

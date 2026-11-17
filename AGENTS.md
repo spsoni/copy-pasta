@@ -92,6 +92,11 @@ src/test/kotlin/   format/* are JUnit 4 unit tests; ide/* are light platform tes
   2. Exclusion is inherited by descendants, so honouring an explicitly selected excluded folder means skipping the
      inherited checks below it, not just at the root.
   3. 2.20.x of the IntelliJ Platform Gradle Plugin was under two weeks old, so we stayed on 2.19.0.
+  4. The CI verifier flagged `ReadAction.compute/run` (deprecated from 2026.1) and `FileEditorManager.openFile(file,
+     focus)` (from 2026.3). Background code now uses `ReadAction.nonBlocking(Callable).executeSynchronously()`, which
+     exists in 2025.3 and is cancellable/restartable, so the block must be side-effect free. `computeBlocking` isn't in
+     2025.3 and is EDT-only anyway. Files open with `OpenFileDescriptor.navigate`. Tests call the collector from a
+     pooled thread via `PlatformTestUtil.waitForFuture`. **Check the verifier's deprecated-usages report on every PR.**
 - **2026-11-17 — Gradle memory tuning committed to the repo** (requested by the owner via the dev01 hub). The first
   builds thrashed dev01: the old Gradle daemon (512m), a separate Kotlin daemon (~690 MB, lingers for hours) and the
   IntelliJ test JVM (forked with `-Xmx2048m`) all ran in the session's memory cgroup. Pressure hit 89%, load reached 64
