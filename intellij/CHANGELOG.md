@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-11-17
+
 ### Security
 
 - Pasting no longer follows symbolic links that already exist in the target folder. Before, a pasted `link/file`
@@ -101,7 +103,8 @@ A redesign focused on safe pasting and chat-proof text. **Text copied with 1.x c
 
 - Initial release: copy files and folders to the clipboard as Base64 text and paste them back, with optional encryption.
 
-[Unreleased]: https://github.com/spsoni/copy-pasta/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/spsoni/copy-pasta/compare/v2.1.1...HEAD
+[2.1.1]: https://github.com/spsoni/copy-pasta/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/spsoni/copy-pasta/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/spsoni/copy-pasta/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/spsoni/copy-pasta/compare/v1.0.0...v2.0.0
