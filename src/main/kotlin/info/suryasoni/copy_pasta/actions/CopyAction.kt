@@ -54,7 +54,7 @@ open class CopyAction(private val encrypted: Boolean = false) : DumbAwareAction(
                     Notifier.notify(project, message("copy.nothing"), NotificationType.WARNING)
                     return
                 }
-                CopyPasteManager.getInstance().setContents(StringSelection(copied))
+                CopyPasteManager.getInstance().contents = StringSelection(copied)
                 val lines =
                     mutableListOf(
                         message("copy.done", collected.files.size, StringUtil.formatFileSize(collected.totalBytes), copied.length),
