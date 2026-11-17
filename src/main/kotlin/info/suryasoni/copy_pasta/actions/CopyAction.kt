@@ -1,14 +1,21 @@
 package info.suryasoni.copy_pasta.actions
 
+import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.application.WriteAction
+import com.intellij.openapi.fileChooser.FileChooserFactory
+import com.intellij.openapi.fileChooser.FileSaverDescriptor
 import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.text.StringUtil
+import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.openapi.vfs.VirtualFile
 import info.suryasoni.copy_pasta.CopyPastaBundle.message
 import info.suryasoni.copy_pasta.format.Crypto
 import info.suryasoni.copy_pasta.format.Envelope
@@ -18,6 +25,7 @@ import info.suryasoni.copy_pasta.ide.CopyTooLargeException
 import info.suryasoni.copy_pasta.ide.Notifier
 import info.suryasoni.copy_pasta.ui.PassphraseDialog
 import java.awt.datatransfer.StringSelection
+import java.io.IOException
 
 /** Copies the selected files and folders to the clipboard as Copy-Pasta text. */
 open class CopyAction(private val encrypted: Boolean = false) : DumbAwareAction() {
@@ -71,7 +79,18 @@ open class CopyAction(private val encrypted: Boolean = false) : DumbAwareAction(
                 val tooLongForChat = copied.length > CHAT_FRIENDLY_CHARS
                 if (tooLongForChat) lines += message("copy.longForChat")
                 val warn = tooLongForChat || collected.skippedLarge.isNotEmpty() || collected.skippedDuplicates > 0
-                Notifier.notify(project, lines.joinToString("<br>"), if (warn) NotificationType.WARNING else NotificationType.INFORMATION)
+                val actions =
+                    if (tooLongForChat) {
+                        arrayOf(NotificationAction.createSimpleExpiring(message("copy.saveAsFile")) { saveAsFile(project, copied) })
+                    } else {
+                        emptyArray()
+                    }
+                Notifier.notify(
+                    project,
+                    lines.joinToString("<br>"),
+                    if (warn) NotificationType.WARNING else NotificationType.INFORMATION,
+                    *actions,
+                )
             }
 
             override fun onThrowable(error: Throwable) {
@@ -89,7 +108,26 @@ open class CopyAction(private val encrypted: Boolean = false) : DumbAwareAction(
         }.queue()
     }
 
+    /** Saves [text] as a `.txt` file to send as an attachment; the recipient opens it from Paste's fallback dialog. */
+    private fun saveAsFile(project: Project, text: String) {
+        val descriptor = FileSaverDescriptor(message("save.title"), message("save.description"), "txt")
+        val wrapper = FileChooserFactory.getInstance().createSaveFileDialog(descriptor, project).save(DEFAULT_FILE_NAME) ?: return
+        try {
+            val saved =
+                WriteAction.compute<VirtualFile, IOException> {
+                    val file = wrapper.getVirtualFile(true) ?: throw IOException(wrapper.file.path)
+                    VfsUtil.saveText(file, text)
+                    file
+                }
+            Notifier.notify(project, message("save.done", saved.presentableUrl), NotificationType.INFORMATION)
+        } catch (e: IOException) {
+            Notifier.error(project, message("save.failed", e.message ?: e.javaClass.simpleName))
+        }
+    }
+
     companion object {
+        private const val DEFAULT_FILE_NAME = "copy-pasta.txt"
+
         /** Slack cuts messages at about 40k characters and Teams at about 28 KB; warn above this. */
         const val CHAT_FRIENDLY_CHARS = 35_000
     }

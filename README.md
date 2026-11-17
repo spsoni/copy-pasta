@@ -26,8 +26,8 @@ No repository, file-sharing service or account is needed. Copy-Pasta works offli
 
 1. **Copy.** In the Project view, right-click files or folders and choose **Copy-Pasta | Copy**.
 2. **Send.** Paste the text into a chat, email or ticket.
-3. **Copy it on the other side.** The recipient selects the whole message, from `BEGIN COPY-PASTA` to `END COPY-PASTA`, and copies it. Copy-Pasta reads the clipboard, not the chat window.
-4. **Paste.** Right-click the target folder, choose **Copy-Pasta | Paste…**, review the preview and confirm.
+3. **Copy it on the other side.** The recipient selects the whole message, from `BEGIN COPY-PASTA` to `END COPY-PASTA`, and copies it. Copy-Pasta reads the clipboard, not the chat window. A clipboard icon in the status bar confirms that the text is ready.
+4. **Paste.** Right-click the target folder, choose **Copy-Pasta | Paste…**, review the preview and confirm. Or just click the status bar icon.
 
 **Why Copy-Pasta**
 
@@ -50,6 +50,7 @@ Code pasted into chat loses its folder structure, gets re-wrapped and reformatte
 - Honours `.gitignore`, excluded folders and the IDE's ignored files. Anything you select explicitly is always included.
 - Includes unsaved editor changes.
 - Survives email quoting, line re-wrapping and surrounding chat text.
+- Handles long selections: save the text as a file, and the recipient opens it from the Paste dialog.
 - Uses a standard ZIP inside, so your content is never locked in.
 - Has no settings and no dependencies, and does its work in the background.
 
@@ -57,7 +58,7 @@ Works in IntelliJ IDEA, PyCharm, WebStorm, GoLand, Rider, CLion, PhpStorm, RubyM
 <!-- Plugin description end -->
 
 > [!IMPORTANT]
-> **Paste reads your clipboard.** Before you choose **Copy-Pasta | Paste…**, copy the entire message you received, including the `BEGIN` and `END` lines.
+> **Paste reads your clipboard.** Copy the entire message you received, including the `BEGIN` and `END` lines, before you paste. A clipboard icon appears in the status bar when the text is ready. If the clipboard holds something else, **Paste…** asks you to paste the message or open a file.
 
 ![The Paste Files preview: every file is listed as new, overwrite or identical before anything is written](docs/images/paste-preview.png)
 

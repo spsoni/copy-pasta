@@ -12,13 +12,14 @@ ticket.
 | 3 | | Review the preview → **Paste N Files** |
 
 > [!IMPORTANT]
-> **Paste reads your clipboard, not the chat window.** If you choose **Paste…** without copying the message first, Copy-Pasta
-> says *"The clipboard does not contain Copy-Pasta text"* and nothing is written.
+> **Paste reads your clipboard, not the chat window.** Copy the message first. When the clipboard holds Copy-Pasta
+> text, a clipboard icon appears in the status bar at the bottom of the IDE window.
 
 ## Contents
 
 - [Copy files](#copy-files)
 - [Paste files](#paste-files)
+- [The status bar icon](#the-status-bar-icon)
 - [Encrypt with a passphrase](#encrypt-with-a-passphrase)
 - [Long text and chat limits](#long-text-and-chat-limits)
 - [What gets copied](#what-gets-copied)
@@ -46,8 +47,13 @@ large selections don't freeze the IDE.
    ignores it. Chat apps often collapse long messages, so expand the message before you select it.
 2. In the **Project** view, right-click the folder to paste into and choose **Copy-Pasta | Paste…**. You can also use
    **Edit | Paste Files from Copy-Pasta…**. If you right-click a file, the paste goes into the folder containing it.
-   With nothing selected, it goes into the project root.
+   With nothing selected, it goes into the project root. When the clipboard holds Copy-Pasta text, the menu item
+   shows what it contains, for example **Paste… (3 files, 4.1 KB)**.
 3. Review the preview and choose **Paste N Files**.
+
+If the clipboard holds something else when you choose **Paste…**, the **Paste Copy-Pasta Text** dialog opens instead.
+Paste the message into it, or choose **Open File…** to load a `.txt` attachment. A message that is cut off or damaged
+is reported in the dialog, so you can fix it before going on.
 
 ![The Paste Files preview listing each file as new, with a checkbox](images/paste-preview.png)
 
@@ -66,6 +72,23 @@ opens the pasted files.
 For your safety, the paste skips entries that would land outside the target folder, write into `.git` or another
 version-control folder, or clash with an existing file or folder of a different kind. The preview tells you when
 this happens.
+
+## The status bar icon
+
+A clipboard icon in the status bar shows when there is Copy-Pasta text to paste:
+
+| Icon | Meaning |
+|---|---|
+| Appears with a short pulse | New Copy-Pasta text is on the clipboard. Hover over it to see what it contains. |
+| Dimmed | This text has already been pasted. Click to paste it again. |
+| Fades out | The clipboard now holds something else. |
+
+Click the icon to paste into the project root, after the usual preview. To paste somewhere else, right-click that
+folder and choose **Copy-Pasta | Paste…**.
+
+The IDE notices text copied in another app when you switch back to its window, so the icon appears at that moment.
+Copy-Pasta never changes or clears your clipboard. To hide the icon, right-click the status bar and untick
+**Copy-Pasta Clipboard**.
 
 ## Encrypt with a passphrase
 
@@ -92,9 +115,10 @@ start cutting messages at around 35,000 characters, so Copy-Pasta warns you abov
 
 ![A notification warning that 37,470 characters is long for chat](images/long-text-warning.png)
 
-For a long copy, send it by email, or save the text as a `.txt` file and attach it. The recipient opens the file and
-copies its contents. If a message does get cut off, Paste says it is incomplete, with the number of characters that
-arrived. It never writes broken files.
+For a long copy, choose **Save as File…** in that notification and send the `.txt` file as an attachment, or send the
+text by email. The recipient chooses **Copy-Pasta | Paste…**, then **Open File…** in the dialog that opens. If a
+message does get cut off, Paste says it is incomplete, with the number of characters that arrived. It never writes
+broken files.
 
 Limits: 10 MB per file and 50 MB per copy. Copy-Pasta is meant for snippets, reproducers and small projects, not for
 replacing a repository.
@@ -121,8 +145,8 @@ also works if a paste stopped part-way through.
 
 | Message | What to do |
 |---|---|
-| *The clipboard does not contain Copy-Pasta text* | Copy the whole block, including both the BEGIN and END lines. |
-| *The Copy-Pasta text is incomplete* | The chat app cut the message. Ask for it by email or as a `.txt` attachment. |
+| *This isn't Copy-Pasta text* (in the Paste dialog) | Paste the whole message, including both the BEGIN and END lines. |
+| *The Copy-Pasta text is incomplete* | The chat app cut the message. Ask the sender to use **Save as File…** and send the file. |
 | *The Copy-Pasta text is damaged* | Something changed the text in transit. Ask the sender to copy it again. |
 | *Made by a newer version of Copy-Pasta* | Update the plugin: **Settings \| Plugins \| Installed**. |
 | *Wrong passphrase, or the text was changed* | Check the passphrase with the sender. If it's right, the text was altered: ask for it again. |

@@ -130,6 +130,31 @@ class EnvelopeTest {
     }
 
     @Test
+    fun `peek reads the summary without decoding`() {
+        val peek = Envelope.peek("see below\n> " + Envelope.encode(payload, encrypted = true, summary = "20 files, 66.85 kB"))
+        assertEquals("20 files, 66.85 kB", peek?.summary)
+        assertTrue(peek!!.encrypted)
+        assertFalse(Envelope.peek(text)!!.encrypted)
+        assertEquals(null, Envelope.peek("just some code"))
+    }
+
+    @Test
+    fun `peek tolerates a missing or hostile summary`() {
+        val noSummary = text.lines().filterIndexed { i, _ -> i != 1 }.joinToString("\n")
+        assertEquals(null, Envelope.peek(noSummary)!!.summary)
+
+        val hostile = text.replace("2 files, 3 KB", "<html><b>owned</b>‮" + "x".repeat(200))
+        val summary = Envelope.peek(hostile)!!.summary
+        assertTrue(summary == null || (summary.length <= 60 && summary.none { it in "<>/‮" }))
+    }
+
+    @Test
+    fun `peek only looks at the start of very long text`() {
+        assertEquals(null, Envelope.peek(" ".repeat(70_000) + text))
+        assertTrue(Envelope.looksLikeEnvelope(" ".repeat(70_000) + text))
+    }
+
+    @Test
     fun `newer format is refused with a clear problem`() {
         val newer = text.replace("Format: 2;", "Format: 9;")
         assertEquals(Problem.NEWER_VERSION, assertThrows(EnvelopeException::class.java) { Envelope.decode(newer) }.problem)

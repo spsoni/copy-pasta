@@ -30,9 +30,12 @@ learns something.
 ```
 src/main/kotlin/info/suryasoni/copy_pasta/
   format/   IDE-free and unit-tested. Envelope (text wrapper), ZipCodec (JDK zip, path safety, size caps), Crypto.
-  ide/      CopyCollector (VFS walk using VCS/IDE ignore rules), PasteWriter (plan + VFS write), Notifier.
-  ui/       PastePreviewDialog, PassphraseDialog (Kotlin UI DSL v2).
-  actions/  CopyAction / CopyEncryptedAction, PasteAction (Project view group + Edit menu entry).
+  ide/      CopyCollector (VFS walk using VCS/IDE ignore rules), PasteWriter (plan + VFS write), Notifier,
+            ClipboardWatcher (app service: clipboard → ClipboardStatus, published on a topic; IDE-free status logic).
+  ui/       PastePreviewDialog, PassphraseDialog, PasteTextDialog (fallback: paste text / Open File…),
+            ClipboardStatusWidget (status bar icon) (Kotlin UI DSL v2).
+  actions/  CopyAction / CopyEncryptedAction (+ Save as File…), PasteAction / PasteFromEditMenuAction, PasteFlow
+            (the decode → preview → write pipeline shared by the actions and the widget).
   CopyPastaBundle.kt + resources/messages/CopyPastaBundle.properties   All UI text, including action names.
 docs/user-guide.md + docs/images/   End-user documentation (linked from README). Update it with any UI change.
 src/main/resources/META-INF/   plugin.xml, pluginIcon.svg, pluginIcon_dark.svg (40×40, original artwork).
@@ -79,6 +82,23 @@ src/test/kotlin/   format/* are JUnit 4 unit tests; ide/* are light platform tes
 `build.yml` (push to main and PRs) runs build, `check`, Qodana and the Plugin Verifier. It no longer drafts releases.
 
 ## Decisions & lessons log (newest first — keep this current)
+
+- **2026-11-17 — v2.1 paste UX (owner-approved).** The recipient forgetting to copy the message was the main
+  stumbling block. Decisions:
+  - **Paste stays enabled.** A disabled item gives no reason. Text copied in another app only reaches the IDE when its
+    window is focused, so the enabled state would often be wrong. And update() runs on every menu open, too often to
+    scan a clipboard of up to ~70 MB.
+  - **Fallback dialog instead of an error.** It accepts pasted text or a file (which closes the long-message gap with
+    **Save as File…**), and validates texts up to 2M characters inline.
+  - **Status bar widget:** one pulse on arrival, dimmed after paste, fade out on other content.
+  - **Never clear or change the user's clipboard.** "Pasted" is a fingerprint (length + hash), not a stored copy.
+  - **No polling.** ClipboardWatcher refreshes on IDE clipboard changes and on window activation. Menu text and the
+    widget read its cached status.
+  - **Clicking the widget pastes into the project root.** `AbstractProjectViewPane.getSelectedDirectories` and
+    friends are deprecated in 2025.3; the preview shows the target.
+
+  The sender sees the icon too after copying, which doubles as confirmation that the copy worked. dev01 is headless,
+  so the widget and dialog look need checking on a desktop.
 
 - **2026-11-17 — user docs live in `docs/`, not the GitHub wiki.** A wiki is a separate repo: it isn't versioned with
   the code, isn't reviewed in PRs, and drifts from the UI. The guide's screenshots are the owner's (macOS, light

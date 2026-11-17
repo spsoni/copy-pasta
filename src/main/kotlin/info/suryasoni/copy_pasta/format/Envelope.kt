@@ -29,6 +29,10 @@ object Envelope {
     private val FORMAT_LINE = Regex("""Format:\s*(\d+)\s*;\s*length:\s*(\d+)""", RegexOption.IGNORE_CASE)
     private val QUOTE_PREFIX = Regex("""^[\s>]+""")
     private val BASE64_LINE = Regex("""[A-Za-z0-9+/=]+""")
+    private val SUMMARY_LINE = Regex("""Copy-Pasta:\s*([^\r\n]{1,120}?)\.\s+Paste it""")
+    private const val PEEK_CHARS = 65_536
+    private const val SUMMARY_SEARCH_CHARS = 400
+    private const val MAX_SUMMARY_CHARS = 60
 
     class Decoded(val payload: ByteArray, val encrypted: Boolean)
 
@@ -49,6 +53,30 @@ object Envelope {
             append("-----END ").append(label).append("-----\n")
         }
     }
+
+    /**
+     * What a glance at [text] reveals without decoding: whether it is Copy-Pasta text, encrypted or not, and the
+     * sender's summary line ("3 files, 4.1 KB"). Only the first [PEEK_CHARS] characters are searched, so this is
+     * cheap enough to run on every clipboard change. The summary comes from untrusted text: it is reduced to
+     * letters, digits, spaces and `,.-` and capped in length so it is safe to show in menus and tooltips.
+     */
+    fun peek(text: String): Peek? {
+        val head = if (text.length > PEEK_CHARS) text.substring(0, PEEK_CHARS) else text
+        val begin = BEGIN.find(head) ?: return null
+        val afterBegin = head.substring(begin.range.last + 1, minOf(head.length, begin.range.last + 1 + SUMMARY_SEARCH_CHARS))
+        val summary =
+            SUMMARY_LINE
+                .find(afterBegin)
+                ?.groupValues
+                ?.get(1)
+                ?.filter { it.isLetterOrDigit() || it in " ,.-" }
+                ?.trim()
+                ?.take(MAX_SUMMARY_CHARS)
+                ?.ifEmpty { null }
+        return Peek(encrypted = begin.groupValues[1].contains("ENCRYPTED", ignoreCase = true), summary = summary)
+    }
+
+    class Peek(val encrypted: Boolean, val summary: String?)
 
     /** True when [text] looks like Copy-Pasta text (cheap check, no decoding). */
     fun looksLikeEnvelope(text: String): Boolean = BEGIN.containsMatchIn(text)

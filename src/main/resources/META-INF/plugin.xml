@@ -11,6 +11,8 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <notificationGroup id="Copy-Pasta" displayType="BALLOON" key="notification.group.name"/>
+        <statusBarWidgetFactory id="CopyPasta.ClipboardStatus"
+                                implementation="info.suryasoni.copy_pasta.ui.ClipboardStatusWidgetFactory"/>
     </extensions>
 
     <actions>
@@ -20,7 +22,7 @@
             <action id="CopyPasta.CopyEncrypted" class="info.suryasoni.copy_pasta.actions.CopyEncryptedAction"/>
             <action id="CopyPasta.Paste" class="info.suryasoni.copy_pasta.actions.PasteAction" icon="AllIcons.Actions.MenuPaste"/>
         </group>
-        <action id="CopyPasta.PasteFromEditMenu" class="info.suryasoni.copy_pasta.actions.PasteAction">
+        <action id="CopyPasta.PasteFromEditMenu" class="info.suryasoni.copy_pasta.actions.PasteFromEditMenuAction">
             <add-to-group group-id="CutCopyPasteGroup" anchor="last"/>
         </action>
     </actions>
