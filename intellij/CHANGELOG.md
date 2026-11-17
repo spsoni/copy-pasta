@@ -25,6 +25,8 @@
 - Copy-Pasta markers are recognised case-insensitively for ASCII letters only, and a complete message containing
   non-ASCII characters in its body is reported as damaged rather than cut off. Both match the shared format
   specification other Copy-Pasta products will follow.
+- The error notification's action reads **Paste text or open file…** (sentence case, as notification actions
+  should be).
 - A passphrase containing an incomplete character (an unpaired surrogate, only possible by pasting) is refused,
   because other products couldn't decrypt the text.
 
