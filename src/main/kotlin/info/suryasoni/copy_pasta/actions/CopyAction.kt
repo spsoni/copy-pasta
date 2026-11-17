@@ -48,6 +48,8 @@ open class CopyAction(private val encrypted: Boolean = false) : DumbAwareAction(
                 text = Envelope.encode(payload, encrypted, summary)
             }
 
+            // getContents() is nullable but setContents() isn't, so `contents` is a val in Kotlin: keep the setter call.
+            @Suppress("UsePropertyAccessSyntax")
             override fun onSuccess() {
                 val copied = text
                 if (copied == null) {

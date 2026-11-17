@@ -17,7 +17,7 @@ import info.suryasoni.copy_pasta.format.FileEntry
 import java.nio.file.Files
 import java.util.concurrent.Callable
 
-class CopyTooLargeException(val totalBytes: Long) : Exception("selection too large")
+class CopyTooLargeException : Exception("selection too large")
 
 /**
  * Collects the files to copy. It uses what the IDE already knows instead of a hand-maintained pattern list:
@@ -50,7 +50,7 @@ class CopyCollector(private val project: Project) {
             }
             val bytes = contentOf(file)
             total += bytes.size
-            if (total > MAX_TOTAL_BYTES) throw CopyTooLargeException(total)
+            if (total > MAX_TOTAL_BYTES) throw CopyTooLargeException()
             files += FileEntry(path, bytes, isExecutable(file))
         }
         return Result(files, walk.skippedIgnored, skippedLarge, walk.skippedDuplicates)
