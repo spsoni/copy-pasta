@@ -44,20 +44,18 @@ class PasteAction : DumbAwareAction() {
         val project = event.project ?: return
         val target = targetDirectory(event) ?: return
         val clipboard = CopyPasteManager.getInstance().getContents<String>(DataFlavor.stringFlavor).orEmpty()
-
-        val decoded =
-            try {
-                Envelope.decode(clipboard)
-            } catch (e: Envelope.EnvelopeException) {
-                Notifier.error(project, envelopeProblem(e))
-                return
-            }
-        val passphrase = if (decoded.encrypted) PassphraseDialog.ask(project, confirm = false) ?: return else null
+        // Only cheap checks on the EDT. Decoding (up to tens of MB of Base64) happens in the background task.
+        if (!Envelope.looksLikeEnvelope(clipboard)) {
+            Notifier.error(project, message("paste.notFound"))
+            return
+        }
+        val passphrase = if (Envelope.isEncrypted(clipboard)) PassphraseDialog.ask(project, confirm = false) ?: return else null
 
         object : Task.Backgroundable(project, message("paste.progress"), true) {
             private var planned: List<PlannedFile> = emptyList()
 
             override fun run(indicator: ProgressIndicator) {
+                val decoded = Envelope.decode(clipboard)
                 val zip = passphrase?.let { Crypto.decrypt(decoded.payload, it) } ?: decoded.payload
                 val files = ZipCodec.decode(zip)
                 indicator.checkCanceled()
@@ -71,7 +69,14 @@ class PasteAction : DumbAwareAction() {
                 }
                 val dialog = PastePreviewDialog(project, target, planned)
                 if (!dialog.showAndGet()) return
-                val written = PasteWriter.write(project, target, dialog.selectedFiles)
+                val written =
+                    try {
+                        PasteWriter.write(project, target, dialog.selectedFiles)
+                    } catch (e: Exception) {
+                        // Some files may already be written; the Local History label lets the user undo them.
+                        Notifier.error(project, message("paste.writeFailed", e.message ?: e.javaClass.simpleName))
+                        return
+                    }
                 Notifier.notify(
                     project,
                     message("paste.done", written.size, target.presentableUrl),
@@ -83,6 +88,7 @@ class PasteAction : DumbAwareAction() {
             override fun onThrowable(error: Throwable) {
                 val content =
                     when (error) {
+                        is Envelope.EnvelopeException -> envelopeProblem(error)
                         is WrongPassphraseException -> message("paste.wrongPassphrase")
                         is InvalidArchiveException -> message("paste.invalidArchive", error.message.orEmpty())
                         else -> message("paste.failed", error.message ?: error.javaClass.simpleName)

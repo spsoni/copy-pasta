@@ -69,7 +69,9 @@ class PastePreviewDialog(project: Project, private val target: VirtualFile, priv
                 PasteStatus.IDENTICAL -> message("preview.status.identical")
                 PasteStatus.BLOCKED -> ""
             }
-        return "${file.entry.path}  —  $status, ${StringUtil.formatFileSize(file.entry.bytes.size.toLong())}"
+        val executable = if (file.entry.executable) ", " + message("preview.executable") else ""
+        // Starts with the status, never the path, so a path like "<html>…" can't switch Swing into HTML rendering.
+        return "[$status]  ${file.entry.path}  (${StringUtil.formatFileSize(file.entry.bytes.size.toLong())}$executable)"
     }
 
     private fun updateOkButton() {

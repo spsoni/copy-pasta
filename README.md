@@ -19,7 +19,7 @@ You don't need a repository, a file-sharing service or an attachment. It works o
 **Features**
 
 - **Smart selection:** files ignored by your VCS (`.gitignore`), excluded folders and the IDE's ignored files are left out automatically. Unsaved editor changes are included.
-- **Safe paste:** preview with checkboxes, a single Local History checkpoint so the whole paste can be undone, and protection against paths that try to escape the target folder.
+- **Safe paste:** preview with checkboxes (executable files are marked), a single Local History checkpoint so the whole paste can be undone, and protection against paths that escape the target folder or write into `.git`.
 - **Chat-proof text:** survives email quoting, line re-wrapping and surrounding chat text. If a chat app cuts the message, you're told it's incomplete instead of getting broken files.
 - **Optional encryption:** **Copy Encrypted…** protects the content with a passphrase (AES-256-GCM). The passphrase is never stored; share it separately.
 - **No lock-in:** the content is a standard ZIP. Without the plugin, the Base64 lines between the `Format:` line and the END line decode with `base64 -d`, then `unzip`.
@@ -44,8 +44,8 @@ UEsDBBQACAgIA...                      (Base64, 76 characters per line)
 ```
 
 - The body is Base64 of a ZIP. File paths are relative to the selection, and the executable bit is stored in a private ZIP extra field.
-- `BEGIN COPY-PASTA ENCRYPTED` means the body is `CPv2` | 16-byte salt | 12-byte IV | AES-256-GCM ciphertext and tag.
-  The key comes from the passphrase via PBKDF2-HMAC-SHA256 (100,000 iterations).
+- `BEGIN COPY-PASTA ENCRYPTED` means the body is `CPv2` | PBKDF2 iteration count (int32) | 16-byte salt | 12-byte IV |
+  AES-256-GCM ciphertext and tag. The key comes from the passphrase via PBKDF2-HMAC-SHA256 (600,000 iterations by default).
 - `length` lets the plugin detect a message cut off by a chat app.
 - Copy-Pasta 1.x text (raw Base64 tar.gz) can't be pasted with 2.x.
 

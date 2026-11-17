@@ -65,13 +65,11 @@ open class CopyAction(private val encrypted: Boolean = false) : DumbAwareAction(
                     val names = collected.skippedLarge.take(3).joinToString { StringUtil.escapeXmlEntities(it) }
                     lines += message("copy.skippedLarge", collected.skippedLarge.size, names)
                 }
+                if (collected.skippedDuplicates > 0) lines += message("copy.skippedDuplicates", collected.skippedDuplicates)
                 val tooLongForChat = copied.length > CHAT_FRIENDLY_CHARS
                 if (tooLongForChat) lines += message("copy.longForChat")
-                Notifier.notify(
-                    project,
-                    lines.joinToString("<br>"),
-                    if (tooLongForChat || collected.skippedLarge.isNotEmpty()) NotificationType.WARNING else NotificationType.INFORMATION,
-                )
+                val warn = tooLongForChat || collected.skippedLarge.isNotEmpty() || collected.skippedDuplicates > 0
+                Notifier.notify(project, lines.joinToString("<br>"), if (warn) NotificationType.WARNING else NotificationType.INFORMATION)
             }
 
             override fun onThrowable(error: Throwable) {

@@ -47,6 +47,20 @@ class CopyCollectorTest : BasePlatformTestCase() {
         assertEquals("in editor", result.files.single().bytes.decodeToString())
     }
 
+    fun `test same-named roots are kept apart and nested selections are not duplicated`() {
+        val temp = myFixture.tempDirFixture
+        temp.createFile("ws/moduleA/src/Main.kt", "A")
+        temp.createFile("ws/moduleB/src/Main.kt", "B")
+        val srcA = temp.getFile("ws/moduleA/src")!!
+        val srcB = temp.getFile("ws/moduleB/src")!!
+        val nested = temp.getFile("ws/moduleA/src/Main.kt")!!
+
+        val result = collect(srcA, srcB, nested)
+        assertEquals(listOf("moduleA/src/Main.kt", "moduleB/src/Main.kt"), result.files.map { it.path })
+        assertEquals(listOf("A", "B"), result.files.map { it.bytes.decodeToString() })
+        assertEquals(0, result.skippedDuplicates)
+    }
+
     fun `test multiple roots keep their own names`() {
         val temp = myFixture.tempDirFixture
         val a = temp.createFile("one/x.txt", "1")

@@ -32,6 +32,35 @@ class PasteWriterTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test entries that clash with each other or target VCS metadata are blocked`() {
+        val target = myFixture.tempDirFixture.findOrCreateDir("clash")
+        val files =
+            listOf(
+                entry("util", "a file"), // another entry needs "util" as a folder
+                entry("util/a.kt", "x"),
+                entry(".git/hooks/pre-commit", "evil"),
+                entry("sub/.GIT/config", "evil"),
+            )
+        assertEquals(
+            listOf(PasteStatus.BLOCKED, PasteStatus.NEW, PasteStatus.BLOCKED, PasteStatus.BLOCKED),
+            PasteWriter.plan(target, files).map { it.status },
+        )
+    }
+
+    fun `test case-only duplicates are blocked on case-insensitive file systems`() {
+        val target = myFixture.tempDirFixture.findOrCreateDir("case")
+        val files = listOf(entry("README.md", "a"), entry("readme.md", "b"), entry("Docs/x", "1"), entry("docs", "2"))
+
+        assertEquals(
+            listOf(PasteStatus.NEW, PasteStatus.BLOCKED, PasteStatus.NEW, PasteStatus.BLOCKED),
+            PasteWriter.plan(target, files, caseSensitive = false).map { it.status },
+        )
+        assertEquals(
+            listOf(PasteStatus.NEW, PasteStatus.NEW, PasteStatus.NEW, PasteStatus.NEW),
+            PasteWriter.plan(target, files, caseSensitive = true).map { it.status },
+        )
+    }
+
     fun `test write creates folders and overwrites files through the VFS`() {
         val temp = myFixture.tempDirFixture
         val target = temp.findOrCreateDir("out")

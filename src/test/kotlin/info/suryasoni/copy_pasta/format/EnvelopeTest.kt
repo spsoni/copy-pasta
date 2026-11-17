@@ -110,6 +110,26 @@ class EnvelopeTest {
     }
 
     @Test
+    fun `survives newlines collapsed into spaces`() {
+        assertArrayEquals(payload, Envelope.decode(text.replace("\n", " ")).payload)
+    }
+
+    @Test
+    fun `absurd numbers are reported as corrupted, not thrown`() {
+        val huge = text.replace(Regex("length: \\d+"), "length: 99999999999")
+        assertEquals(Problem.CORRUPTED, assertThrows(EnvelopeException::class.java) { Envelope.decode(huge) }.problem)
+        val hugeVersion = text.replace("Format: 2;", "Format: 30000000000;")
+        assertEquals(Problem.CORRUPTED, assertThrows(EnvelopeException::class.java) { Envelope.decode(hugeVersion) }.problem)
+    }
+
+    @Test
+    fun `cheap encrypted check`() {
+        assertTrue(Envelope.isEncrypted("chat text " + Envelope.encode(payload, encrypted = true, summary = "x")))
+        assertFalse(Envelope.isEncrypted(text))
+        assertFalse(Envelope.isEncrypted("nothing here"))
+    }
+
+    @Test
     fun `newer format is refused with a clear problem`() {
         val newer = text.replace("Format: 2;", "Format: 9;")
         assertEquals(Problem.NEWER_VERSION, assertThrows(EnvelopeException::class.java) { Envelope.decode(newer) }.problem)

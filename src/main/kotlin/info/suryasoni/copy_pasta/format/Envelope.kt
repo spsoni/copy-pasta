@@ -53,25 +53,29 @@ object Envelope {
     /** True when [text] looks like Copy-Pasta text (cheap check, no decoding). */
     fun looksLikeEnvelope(text: String): Boolean = BEGIN.containsMatchIn(text)
 
+    /** True when [text] contains an encrypted envelope (cheap check, used before asking for a passphrase). */
+    fun isEncrypted(text: String): Boolean = BEGIN.find(text)?.groupValues?.get(1)?.contains("ENCRYPTED", ignoreCase = true) == true
+
     fun decode(text: String): Decoded {
         val begin = BEGIN.find(text) ?: throw EnvelopeException(Problem.NOT_FOUND)
         val encrypted = begin.groupValues[1].contains("ENCRYPTED", ignoreCase = true)
         val rest = text.substring(begin.range.last + 1)
         val end = END.find(rest)
-        val lines = (if (end != null) rest.substring(0, end.range.first) else rest)
-            .lines()
-            .map { it.replace(QUOTE_PREFIX, "").trim() }
+        val inner = if (end != null) rest.substring(0, end.range.first) else rest
 
-        val formatIndex = lines.indexOfFirst { FORMAT_LINE.containsMatchIn(it) }
+        // Located by regex, not by line, so it still works when a chat app collapses newlines into spaces.
+        val format = FORMAT_LINE.find(inner)
         var expected = -1
-        val bodyLines = if (formatIndex >= 0) {
-            val match = FORMAT_LINE.find(lines[formatIndex])!!
-            if (match.groupValues[1].toInt() > FORMAT_VERSION) throw EnvelopeException(Problem.NEWER_VERSION)
-            expected = match.groupValues[2].toInt()
-            lines.drop(formatIndex + 1)
-        } else {
-            lines.filter { BASE64_LINE.matches(it) } // format line lost: keep only lines that can be Base64
-        }
+        val bodyLines =
+            if (format != null) {
+                val version = format.groupValues[1].toIntOrNull() ?: throw EnvelopeException(Problem.CORRUPTED)
+                if (version > FORMAT_VERSION) throw EnvelopeException(Problem.NEWER_VERSION)
+                expected = format.groupValues[2].toIntOrNull() ?: throw EnvelopeException(Problem.CORRUPTED)
+                inner.substring(format.range.last + 1).lines().map { it.replace(QUOTE_PREFIX, "") }
+            } else {
+                // Format line lost: keep only lines that can be Base64.
+                inner.lines().map { it.replace(QUOTE_PREFIX, "").trim() }.filter { BASE64_LINE.matches(it) }
+            }
         val body = bodyLines.joinToString("") { line -> line.filterNot { it.isWhitespace() } }
 
         if (end == null || (expected >= 0 && body.length < expected)) {

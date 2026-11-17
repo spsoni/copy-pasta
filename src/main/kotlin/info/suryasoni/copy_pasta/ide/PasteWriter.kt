@@ -20,8 +20,32 @@ class PlannedFile(val entry: FileEntry, val status: PasteStatus)
  * History label means the IDE sees every change and the whole paste can be reverted from Local History.
  */
 object PasteWriter {
-    /** Works out what each entry would do in [target]. Call inside a read action. */
-    fun plan(target: VirtualFile, files: List<FileEntry>): List<PlannedFile> = files.map { PlannedFile(it, statusOf(target, it)) }
+    /** Folders a pasted archive must never write into: VCS metadata can execute code (hooks, fsmonitor config). */
+    private val FORBIDDEN_SEGMENTS = setOf(".git", ".hg", ".svn", ".bzr", "cvs")
+
+    /**
+     * Works out what each entry would do in [target]. Call inside a read action. Entries are BLOCKED when they would
+     * write into VCS metadata, duplicate another entry (case-insensitively on case-insensitive file systems), sit
+     * where another entry needs a folder, or clash with an existing file or folder.
+     */
+    fun plan(target: VirtualFile, files: List<FileEntry>, caseSensitive: Boolean = target.fileSystem.isCaseSensitive): List<PlannedFile> {
+        fun key(path: String) = if (caseSensitive) path else path.lowercase()
+        val folders =
+            files.flatMapTo(HashSet()) { file ->
+                file.path.split('/').dropLast(1).runningReduce { parent, segment -> "$parent/$segment" }.map(::key)
+            }
+        val seen = HashSet<String>()
+        return files.map { entry ->
+            val status =
+                when {
+                    entry.path.split('/').any { it.lowercase() in FORBIDDEN_SEGMENTS } -> PasteStatus.BLOCKED
+                    !seen.add(key(entry.path)) -> PasteStatus.BLOCKED
+                    key(entry.path) in folders -> PasteStatus.BLOCKED
+                    else -> statusOf(target, entry)
+                }
+            PlannedFile(entry, status)
+        }
+    }
 
     private fun statusOf(target: VirtualFile, entry: FileEntry): PasteStatus {
         val segments = entry.path.split('/')

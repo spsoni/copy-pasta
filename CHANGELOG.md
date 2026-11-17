@@ -11,9 +11,10 @@ A redesign focused on safe pasting and chat-proof text. **Text copied with 1.x c
 - A paste preview: every file is marked new, overwrite or identical, with checkboxes, before anything is written.
 - One Local History checkpoint per paste, so a whole paste can be reverted.
 - Self-describing text with BEGIN/END markers, a readable header line, and detection of messages cut off by chat apps.
-- **Copy Encrypted…** with a passphrase that is never stored (AES-256-GCM, PBKDF2).
+- **Copy Encrypted…** with a passphrase that is never stored (AES-256-GCM, PBKDF2 with 600,000 iterations).
 - **Edit | Paste Files from Copy-Pasta…** in addition to the Project view menu.
 - Warnings when the text is likely too long for chat apps, and when large files are skipped.
+- Executable files are marked in the preview. Entries that would write into `.git` or similar VCS folders are blocked.
 
 ### Changed
 

@@ -38,7 +38,8 @@ src/test/kotlin/   format/* are JUnit 4 unit tests; ide/* are light platform tes
 - **Store listing = README `<!-- Plugin description -->` block.** **Change notes = the CHANGELOG entry for
   `pluginVersion`**, or `[Unreleased]` if there is none. Edit those files, not plugin.xml. Vendor email still to be added.
 - **The envelope is a compatibility contract** between installs: the BEGIN/END markers, `Format: 2; length: N`, a ZIP
-  body, the exec-bit extra field `0x4350`, and the encrypted `CPv2` layout. Readers must accept anything a previous 2.x
+  body, the exec-bit extra field `0x4350`, and the encrypted `CPv2` layout (magic | int32 PBKDF2 iterations | salt | iv |
+  GCM). Readers must accept anything a previous 2.x
   wrote. A breaking change needs `Format: 3` (older plugins then say "update the plugin") and a CHANGELOG note.
 - **Use the IDE instead of re-implementing it**: VFS for reads and writes, ChangeListManager/ProjectFileIndex/
   FileTypeRegistry for ignore rules, Local History for undo. No third-party libraries. In particular, don't use the
@@ -97,6 +98,16 @@ src/test/kotlin/   format/* are JUnit 4 unit tests; ide/* are light platform tes
      exists in 2025.3 and is cancellable/restartable, so the block must be side-effect free. `computeBlocking` isn't in
      2025.3 and is EDT-only anyway. Files open with `OpenFileDescriptor.navigate`. Tests call the collector from a
      pooled thread via `PlatformTestUtil.waitForFuture`. **Check the verifier's deprecated-usages report on every PR.**
+  5. An independent `/code-review high` before merging found 10 real issues. Fixed:
+     - an unhandled write failure on the EDT;
+     - file-vs-folder and case-only clashes inside one archive;
+     - same-named roots merging, and nested selections copied twice;
+     - `toInt` overflow on garbled headers;
+     - decoding on the EDT;
+     - `.git/hooks` planting and the executable bit hidden in the preview;
+     - collapsed newlines losing the body;
+     - PBKDF2 raised to 600k, with the count stored in the payload.
+     Lesson: a review that isn't anchored on the author's view is worth it for anything that parses untrusted input.
 - **2026-11-17 — Gradle memory tuning committed to the repo** (requested by the owner via the dev01 hub). The first
   builds thrashed dev01: the old Gradle daemon (512m), a separate Kotlin daemon (~690 MB, lingers for hours) and the
   IntelliJ test JVM (forked with `-Xmx2048m`) all ran in the session's memory cgroup. Pressure hit 89%, load reached 64

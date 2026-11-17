@@ -42,7 +42,11 @@ class PassphraseDialog private constructor(project: Project?, private val confir
         /** Returns the passphrase, or null if the user cancelled. Clear the array after use. */
         fun ask(project: Project?, confirm: Boolean): CharArray? {
             val dialog = PassphraseDialog(project, confirm)
-            return if (dialog.showAndGet()) dialog.passphraseField.password else null
+            val passphrase = if (dialog.showAndGet()) dialog.passphraseField.password else null
+            // Best effort: drop the text from the fields' documents (the JVM may still hold copies until GC).
+            dialog.passphraseField.text = ""
+            dialog.confirmField.text = ""
+            return passphrase
         }
     }
 }
