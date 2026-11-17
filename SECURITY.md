@@ -8,8 +8,10 @@ private in transit**.
 
 | Risk | Where | Control |
 |---|---|---|
-| Pasted archive writes outside the chosen folder (path traversal / "zip slip") | `ZipCodec.safePath` | Absolute paths, drive letters and `..` segments are rejected before anything is planned. Covered by unit tests. |
-| Pasted archive plants VCS hooks or config that run code (`.git/hooks`, `core.fsmonitor`) | `PasteWriter.plan` | Entries inside `.git`, `.hg`, `.svn`, `.bzr` or `CVS` are blocked, case-insensitively. |
+| Pasted archive writes outside the chosen folder (path traversal / "zip slip") | `ZipCodec.safePath` | Absolute paths, drive letters, `..` segments and control characters are rejected before anything is planned. Covered by unit tests and the shared vectors. |
+| Paste follows a symlink already in the target folder (`link/x` with `link → /etc`, or a symlinked file overwritten through the link) | `PasteWriter.plan`, `PasteWriter.write` | An entry is blocked if any existing part of its path, or the file itself, is a symlink (broken ones too), a special file, or a Windows junction leading out of the target, checked on disk without following links. `write` checks again right before each file and refuses instead of following. Fixed in 2.1.1; earlier versions followed such links. |
+| Pasted archive plants VCS hooks or config that run code (`.git/hooks`, `core.fsmonitor`) | `PasteWriter.plan`, `PathRules` | Entries inside `.git`, `.hg`, `.svn`, `.bzr` or `CVS` are blocked, case-insensitively, including names that are the same folder on Windows or macOS: trailing dots or spaces (`.git.`), the short names `GIT~1`, `HG~1`, `SVN~1` and `BZR~1`, characters HFS+ ignores (a zero-width non-joiner inside `.git`), and letters that case-fold to ASCII (`.ſvn`). |
+| Names Windows treats specially (`C:` inside a path, `name:stream` alternate data streams, `CON`, `con.txt`, trailing dots) | `PathRules`, `PasteWriter.plan` | Blocked when pasting on Windows; allowed elsewhere, where they're ordinary names. |
 | Entries that clash inside the archive (`x` and `x/y`, or `README.md` and `readme.md` on case-insensitive systems) overwrite each other | `PasteWriter.plan` | Such entries are blocked and listed as skipped in the preview. |
 | Paste silently overwrites the user's files | `PastePreviewDialog`, `PasteWriter` | Nothing is written before the user confirms a preview listing every file as new, overwrite or identical, with executable files marked. Writes go through the VFS after a Local History label, so the whole paste can be reverted, including a paste that fails part-way. |
 | Zip bomb (small text, huge expansion) | `ZipCodec.decode` | 200 MB total and 10,000 entries cap, checked while reading. Duplicate entries are rejected. |
@@ -36,6 +38,10 @@ private in transit**.
   So pasted text can make a file executable, but never world-writable or privileged. The preview flags executable
   files and any other permissions that aren't `rw-r--r--`. Review it before pasting text from someone you don't
   trust, as you would with any downloaded script.
+- **Hard links and races.** A file in the target that is a hard link to a file elsewhere is overwritten in place,
+  which changes the other name too (git can't create hard links, so a checked-out project normally has none). The
+  re-check before each write narrows, but can't close, the window in which another local process swaps a folder for
+  a symlink; that needs an attacker already running on the machine.
 - **Clipboard history.** Copy-Pasta text (decrypted content never touches the clipboard) stays in the system clipboard
   and the IDE's clipboard history like anything else you copy. **Clear from Clipboard** in the status bar icon's menu
   removes it from both. Copy-Pasta never clears the clipboard on its own.

@@ -2,10 +2,10 @@ package info.suryasoni.copy_pasta.format
 
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.IOException
 import java.io.InputStream
 import java.util.zip.Deflater
 import java.util.zip.ZipEntry
-import java.util.zip.ZipException
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
@@ -72,7 +72,11 @@ object ZipCodec {
                     files += FileEntry(path, bytes, permissions.executable, permissions.mode)
                 }
             }
-        } catch (e: ZipException) {
+        } catch (e: IOException) {
+            // ZipException, and EOFException for data cut off mid-entry.
+            throw InvalidArchiveException("damaged archive: ${e.message}")
+        } catch (e: IllegalArgumentException) {
+            // ZipInputStream throws this for an entry name that isn't valid UTF-8.
             throw InvalidArchiveException("damaged archive: ${e.message}")
         }
         return files
@@ -80,6 +84,8 @@ object ZipCodec {
 
     /** Normalises an entry name and rejects anything that could escape the target folder. */
     fun safePath(name: String): String {
+        // NUL and control characters have no business in a file name; some file systems and tools truncate at them.
+        if (name.any { it < ' ' }) throw InvalidArchiveException("control character in a file name")
         val normalized = name.replace('\\', '/')
         if (normalized.startsWith("/") || Regex("^[A-Za-z]:").containsMatchIn(normalized)) {
             throw InvalidArchiveException("absolute path: $name")

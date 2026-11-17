@@ -131,4 +131,89 @@ class PasteWriterTest : BasePlatformTestCase() {
             dir.toFile().deleteRecursively()
         }
     }
+
+    fun `test symlinks in the target are never followed`() {
+        if (SystemInfo.isWindows) return // creating symlinks needs extra rights on Windows
+        val root = Files.createTempDirectory("copy-pasta-links")
+        try {
+            val outside = Files.createDirectories(root.resolve("outside"))
+            Files.writeString(outside.resolve("victim.txt"), "original")
+            val dir = Files.createDirectories(root.resolve("target"))
+            Files.createSymbolicLink(dir.resolve("link"), outside) // a folder link pointing out of the target
+            Files.createSymbolicLink(dir.resolve("filelink"), outside.resolve("victim.txt"))
+            Files.createSymbolicLink(dir.resolve("broken"), root.resolve("missing"))
+            Files.createDirectories(dir.resolve("real/inner"))
+            Files.createSymbolicLink(dir.resolve("real/inner/deep"), outside)
+            val target = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(dir)!!
+            target.refresh(false, true)
+
+            val files =
+                listOf(
+                    entry("link/planted.txt", "x"),
+                    entry("filelink", "overwritten"),
+                    entry("broken", "x"),
+                    entry("real/inner/deep/planted.txt", "x"),
+                    entry("real/ok.txt", "fine"),
+                )
+            val plan = PasteWriter.plan(target, files)
+            assertEquals(
+                listOf(PasteStatus.BLOCKED, PasteStatus.BLOCKED, PasteStatus.BLOCKED, PasteStatus.BLOCKED, PasteStatus.NEW),
+                plan.map { it.status },
+            )
+
+            // write() re-checks: even if the tree changed after planning, it never writes through a link.
+            assertThrows(java.io.IOException::class.java) { PasteWriter.write(project, target, listOf(entry("link/planted.txt", "x"))) }
+            assertThrows(java.io.IOException::class.java) { PasteWriter.write(project, target, listOf(entry("filelink", "overwritten"))) }
+            assertFalse(Files.exists(outside.resolve("planted.txt")))
+            assertEquals("original", Files.readString(outside.resolve("victim.txt")))
+        } finally {
+            root.toFile().deleteRecursively()
+        }
+    }
+
+    fun `test names Windows can't hold safely are blocked on Windows targets only`() {
+        val target = myFixture.tempDirFixture.findOrCreateDir("target")
+        val unsafe =
+            listOf(
+                "a/C:/x.txt", "notes.txt:stream", "con.txt", "dir/AUX", "lpt1.log", "COM0", "com" + Char(0xB9) + ".txt",
+                "trail./x", "space /x", "q?.txt", "pipe|.txt",
+            )
+        val onWindows = PasteWriter.plan(target, unsafe.map { entry(it, "x") } + entry("console.txt", "fine"), windows = true)
+        assertEquals(unsafe.map { PasteStatus.BLOCKED } + PasteStatus.NEW, onWindows.map { it.status })
+        val elsewhere = PasteWriter.plan(target, listOf(entry("12:30.log", "x"), entry("con.txt", "x")), windows = false)
+        assertEquals(listOf(PasteStatus.NEW, PasteStatus.NEW), elsewhere.map { it.status })
+    }
+
+    fun `test VCS metadata lookalikes are blocked`() {
+        val target = myFixture.tempDirFixture.findOrCreateDir("target")
+        val names = VCS_LOOKALIKES
+        val plan = PasteWriter.plan(target, names.map { entry(it, "x") } + entry("p/.github/ok.yml", "fine"))
+        assertEquals(names.map { PasteStatus.BLOCKED } + PasteStatus.NEW, plan.map { it.status })
+    }
+
+    fun `test NFC and NFD spellings of one name are one file`() {
+        val target = myFixture.tempDirFixture.findOrCreateDir("target")
+        val nfc = "caf" + Char(0xE9) + ".txt"
+        val nfd = "cafe" + Char(0x301) + ".txt"
+        val plan = PasteWriter.plan(target, listOf(entry(nfc, "a"), entry(nfd, "b")), caseSensitive = true)
+        assertEquals(listOf(PasteStatus.NEW, PasteStatus.BLOCKED), plan.map { it.status })
+    }
+
+    private companion object {
+        // Invisible and special characters as code points, so an edit can't silently change them.
+        val VCS_LOOKALIKES =
+            listOf(
+                ".git./hooks/a",
+                ".git /hooks/b",
+                "GIT~1/hooks/c",
+                ".g" + Char(0x200C) + "it/hooks/d", // zero-width non-joiner, ignored by HFS+
+                "p/.GIT/config",
+                "x/.svn./entries",
+                "HG~1/hgrc", // Windows short name of .hg
+                "Svn~1/entries",
+                "bzr~1/branch.conf",
+                "." + Char(0x17F) + "vn/entries", // long s folds to s on APFS and ext4 casefold
+                "CV" + Char(0x17F) + "/Root",
+            )
+    }
 }

@@ -23,6 +23,7 @@ Golden inputs that every Copy-Pasta implementation must decode exactly as expect
       ],
       "encrypted": true,             // optional: the label says ENCRYPTED
       "blocked": ["p/.git/hooks/x"], // optional: paths a paste plan must block (case-insensitive target)
+      "blockedOnWindows": ["con.txt"], // optional: blocked in addition on a Windows target
       "summary": "7 files, 1 KB"     // optional: what peeking reports (FORMAT.md §2.3)
     }
   }

@@ -30,6 +30,7 @@ class VectorGenerator {
         val files: List<FileEntry>? = null,
         val encrypted: Boolean? = null,
         val blocked: List<String> = emptyList(),
+        val blockedOnWindows: List<String> = emptyList(),
         val summary: String? = null,
         val maxMillis: Long? = null,
     )
@@ -124,6 +125,22 @@ class VectorGenerator {
         )
 
     private val helloText by lazy { plain(hello, "2 files, 40 bytes") }
+
+    /** Invisible and special characters as code points, so an edit can't silently change them. */
+    private val vcsLookalikes =
+        listOf(
+            ".git./hooks/a",
+            ".git /hooks/b",
+            "GIT~1/hooks/c",
+            ".g" + Char(0x200C) + "it/hooks/d",
+            "HG~1/hgrc",
+            "svn~1/entries",
+            "bzr~1/branch.conf",
+            "." + Char(0x17F) + "vn/entries",
+        ).map { file(it, "x") }
+
+    private val windowsUnsafe =
+        listOf("a/C:/x.txt", "notes.txt:stream", "con.txt", "COM0", "com" + Char(0xB9) + ".log", "trail./x").map { file(it, "x") }
 
     private val cases: List<Gen> by lazy {
         listOf(
@@ -399,6 +416,71 @@ class VectorGenerator {
                 },
                 files = listOf(FileEntry("kept.txt", "kept".toByteArray())),
             ),
+            // Story 003 (2.1.1): rules added after the independent review.
+            Gen(
+                "label-unicode-case",
+                "Markers are case-insensitive for ASCII only: \"PAſTA\" (long s, U+017F) is not \"PASTA\".",
+                { helloText.replace("COPY-PASTA", "COPY-PAſTA") },
+                error = "NOT_FOUND",
+            ),
+            Gen(
+                "body-non-ascii",
+                "A non-ASCII character in a complete body is damage, whatever the length says.",
+                { "-----BEGIN COPY-PASTA-----\nFormat: 2; length: 10\nAAAAAAA😀\n-----END COPY-PASTA-----\n" },
+                error = "CORRUPTED",
+            ),
+            Gen(
+                "encrypted-too-short-for-tag",
+                "A CPv2 payload with no room for the 16-byte GCM tag is rejected before key derivation (5M iterations).",
+                {
+                    val header = ByteBuffer.allocate(8).put("CPv2".toByteArray()).putInt(5_000_000).array()
+                    encryptedPayload(header + ByteArray(16) + ByteArray(12) + ByteArray(15))
+                },
+                passphrase = "x",
+                error = "INVALID_ARCHIVE",
+                maxMillis = 2000,
+            ),
+            Gen(
+                "zip-name-control-character",
+                "A control character (U+0001) in an entry name.",
+                { plainPayload(rawZip(entry("a\u0001b.txt"))) },
+                error = "INVALID_ARCHIVE",
+            ),
+            Gen(
+                "zip-name-invalid-utf8",
+                "An entry name that isn't valid UTF-8 (a lead byte followed by ASCII).",
+                {
+                    val zip = rawZip(entry("aaaa.txt"))
+                    zip[indexOf(zip, "aaaa".toByteArray())] = 0xC3.toByte() // the local header's copy of the name
+                    plainPayload(zip)
+                },
+                error = "INVALID_ARCHIVE",
+            ),
+            Gen(
+                "zip-truncated-deflate",
+                "Deflated data cut off in the middle of an entry.",
+                {
+                    val zip = rawZip(Triple("big.bin", ByteArray(100_000) { (it * 31).toByte() }, null))
+                    plainPayload(zip.copyOfRange(0, zip.size / 2))
+                },
+                error = "INVALID_ARCHIVE",
+            ),
+            Gen(
+                "vcs-lookalikes-blocked",
+                "Names that are VCS metadata on Windows or macOS: trailing dot or space, 8.3 short names, an HFS+-ignored " +
+                    "character (U+200C), a letter that case-folds to ASCII (U+017F long s).",
+                { plain(vcsLookalikes + file("ok.txt", "x"), "9 files, 9 bytes") },
+                files = vcsLookalikes + file("ok.txt", "x"),
+                blocked = vcsLookalikes.map { it.path },
+            ),
+            Gen(
+                "windows-unsafe-names",
+                "Decodes, but on Windows a colon (drive or alternate data stream), a device name (also COM0 and the " +
+                    "superscript COM¹) or a trailing dot is blocked.",
+                { plain(windowsUnsafe + file("ok.txt", "x"), "7 files, 7 bytes") },
+                files = windowsUnsafe + file("ok.txt", "x"),
+                blockedOnWindows = windowsUnsafe.map { it.path },
+            ),
             Gen(
                 "summary-sanitized",
                 "The summary line is untrusted: only letters, digits, spaces and ,.- survive, capped at 60 characters.",
@@ -454,6 +536,7 @@ class VectorGenerator {
                                 add("files", JsonArray().apply { case.files!!.forEach { add(Vectors.jsonFile(it)) } })
                                 case.encrypted?.let { addProperty("encrypted", it) }
                                 if (case.blocked.isNotEmpty()) add("blocked", Vectors.jsonArray(case.blocked))
+                                if (case.blockedOnWindows.isNotEmpty()) add("blockedOnWindows", Vectors.jsonArray(case.blockedOnWindows))
                                 case.summary?.let { addProperty("summary", it) }
                             }
                         },

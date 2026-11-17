@@ -99,6 +99,25 @@ or the workflow changes. It no longer drafts releases. JetBrains plugin tags sta
 
 ## Decisions & lessons log (newest first — keep this current)
 
+- **2026-11-17 — 2.1.1 paste hardening (Compass story 003, owner: "security is most important").** The independent
+  review of the new spec against the code found gaps that had shipped in 2.0 and 2.1.0. Fixed, each with a test that
+  failed first:
+  - **Paste followed symlinks already in the target:** `link/x` with `link → /etc` wrote `/etc/x`, and a symlinked
+    file was overwritten through its link. `PasteWriter.linkOnPath` checks every existing component on disk with
+    `NOFOLLOW_LINKS` (broken links and Windows junctions count), in `plan` and again in `write`. The VFS alone isn't
+    enough: it can miss broken links.
+  - **`.git` lookalikes** (`.git.`, `.git `, `GIT~1`, HFS+-ignored code points) and **Windows-unsafe names** (`:`,
+    reserved device names, trailing dot/space; Windows targets only, so `12:30.log` still works elsewhere) are in
+    `format/PathRules`.
+  - Control characters in names → INVALID_ARCHIVE; `EOFException`/`IllegalArgumentException` from `ZipInputStream`
+    → INVALID_ARCHIVE; CPv2 under 52 bytes rejected before PBKDF2; markers ASCII-case-insensitive (Kotlin's
+    `IGNORE_CASE` adds UNICODE_CASE, so `PAſTA` matched); non-ASCII in a complete body → CORRUPTED; unpaired
+    surrogates refused in passphrases.
+
+  Lesson: writing the spec for other languages was itself a security review. Describing behaviour precisely enough
+  for a TypeScript or Rust implementer exposed what the Kotlin did implicitly. Lesson: Kotlin's
+  `RegexOption.IGNORE_CASE` is Unicode-aware; use `Pattern.CASE_INSENSITIVE` for ASCII-only matching.
+
 - **2026-11-17 — monorepo (owner-approved plan, Compass stories 001–002).** After 2.1.0 shipped (the first automatic
   Marketplace publish worked), the owner wants a VS Code extension and macOS/Windows right-click menus that all
   interoperate. Decisions:

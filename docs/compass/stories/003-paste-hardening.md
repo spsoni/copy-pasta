@@ -32,9 +32,30 @@ it. The copy side already skips symlinks; this is about the recipient's tree.
 - `spec/FORMAT.md`, `SECURITY.md`, `intellij/CHANGELOG.md` (`### Security`), `AGENTS.md`, `docs/compass/**`.
 
 ## Acceptance check
-- [ ] Each fix has a test that fails before the fix and passes after (recorded here).
-- [ ] `make check` green; conformance tests cover the new vectors.
-- [ ] Independent re-review of the paste path + spec finds no remaining bypass.
+- [x] Each fix has a test that fails before the fix and passes after. Before (2.1.0 code, `HardeningTest` +
+  `PasteWriterTest`): 9 failures, among them the symlink plan `[NEW, OVERWRITE, OVERWRITE, NEW, NEW]` where
+  `[BLOCKED ×4, NEW]` was expected (`link/planted.txt` would have been written outside the target), VCS lookalikes
+  `NEW`, `EOFException` / `IllegalArgumentException` escaping, short CPv2 → `WrongPassphraseException` after 5M
+  PBKDF2 iterations, control characters accepted, emoji body → INCOMPLETE. After: all 16 pass, plus the Windows-names
+  test.
+- [x] `make check` green: 119 tests, 0 failures; 52 vector cases (8 new for this story) in ConformanceTest, the plan
+  check covers `blocked` and `blockedOnWindows` on both a Windows and a non-Windows target.
+- [x] README badges and install link added outside the plugin-description block: the built `plugin.xml`
+  description is byte-identical to before.
+- [x] Independent re-review of the paste path + spec: no way to escape the target or follow an on-disk symlink.
+  Its findings, all fixed in scope:
+  - Windows short names `HG~1`/`SVN~1`/`BZR~1`;
+  - every Windows reparse point blocked (OneDrive placeholders): now only those whose real path leaves the target;
+  - Unicode case folding (`.ſvn`);
+  - `COM0`/`LPT0`/`COM¹²³`;
+  - NFC/NFD duplicates;
+  - `InvalidPathException` → blocked;
+  - invisible characters written as literals → code points.
+
+  Removing the short names and folding fails `PasteWriterTest` + `ConformancePlanTest` (2 failures); restored.
+  `make check`: 120 tests, 0 failures.
+  Not fixed (documented in SECURITY.md): hard links, the residual plan→write race against a concurrent local
+  process, and the per-directory case sensitivity of mixed mounts.
 - [ ] PR #9 CI green (Qodana red only because the PR crosses the move), verifier Compatible.
 - [ ] After merge: Qodana green on main; 2.1.1 released; Marketplace shows 2.1.1.
 

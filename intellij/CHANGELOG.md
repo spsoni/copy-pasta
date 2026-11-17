@@ -4,6 +4,30 @@
 
 ## [Unreleased]
 
+### Security
+
+- Pasting no longer follows symbolic links that already exist in the target folder. Before, a pasted `link/file`
+  where `link` pointed elsewhere was written outside the folder, and a pasted file replaced the target of a
+  symlinked file. Such entries are now shown as skipped, and the write checks again just before each file.
+- Folders that are `.git`, `.hg`, `.svn` or `.bzr` on Windows or macOS under another spelling (`.git.`, `.git ` with
+  a trailing space, Windows short names such as `GIT~1` or `HG~1`, invisible characters, or letters that case-fold to
+  ASCII) are blocked like the folders themselves.
+- Two names that differ only in Unicode composition (`café` typed two ways) are treated as the same file, so one
+  can't silently replace the other on macOS.
+- On Windows, names that Windows treats specially are skipped: a colon (drive or alternate data stream), reserved
+  device names such as `CON`, `con.txt` or `COM1`, and trailing dots or spaces.
+- File names with control characters are rejected, and damaged archives that used to end in a generic error are
+  reported as invalid.
+- Encrypted text too short to be genuine is rejected before the slow passphrase check.
+
+### Changed
+
+- Copy-Pasta markers are recognised case-insensitively for ASCII letters only, and a complete message containing
+  non-ASCII characters in its body is reported as damaged rather than cut off. Both match the shared format
+  specification other Copy-Pasta products will follow.
+- A passphrase containing an incomplete character (an unpaired surrogate, only possible by pasting) is refused,
+  because other products couldn't decrypt the text.
+
 ## [2.1.0] - 2026-11-17
 
 ### Added
