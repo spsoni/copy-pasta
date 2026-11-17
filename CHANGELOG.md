@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Copy-Pasta is now released under the MIT License (previously Apache 2.0).
+- A clearer Marketplace description of what the plugin is for.
+
 ## [2.0.0] - 2026-11-17
 
 A redesign focused on safe pasting and chat-proof text. **Text copied with 1.x can't be pasted with 2.x.**

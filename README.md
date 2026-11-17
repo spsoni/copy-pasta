@@ -9,6 +9,18 @@ Share files and folders as a block of text you paste into any chat, and get them
 
 You don't need a repository, a file-sharing service or an attachment. It works offline, has no account and sends no data anywhere.
 
+**Why you'll want it**
+
+Chat is where developers actually talk, but it's bad at moving code. Paste three files into Slack and they arrive as a wall of text with the folder structure lost, curly quotes where straight ones should be, and the last file cut off. Attachments get blocked or expire. A branch needs everyone on the same repository. Copy-Pasta gives you one block of text that holds a whole folder tree and comes back byte for byte.
+
+- **Send a working reproducer.** Copy the four files that show the bug. Your colleague gets a runnable folder, not a description of one.
+- **Help across repositories.** Share a config, a Gradle setup or a scaffold with someone who doesn't have access to your project.
+- **Move work between machines.** Get a prototype from a work laptop to a home desktop, or into a locked-down VM where chat is the only thing that gets through.
+- **Answer on forums and in support tickets.** Post a complete example in one message instead of five code blocks and "put this in `src/`".
+- **Keep secrets secret.** Add a passphrase and send it through a different channel. The chat log only ever holds ciphertext.
+
+Two clicks to copy and two to paste, and you see every file before it touches your project.
+
 **How it works**
 
 1. In the **Project** view, right-click files or folders and choose **Copy-Pasta | Copy**.
@@ -76,4 +88,4 @@ Bug reports and pull requests are welcome. Please [open an issue](https://github
 
 ## License
 
-[Apache License 2.0](LICENSE)
+[MIT](LICENSE)

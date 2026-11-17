@@ -68,14 +68,23 @@ src/test/kotlin/   format/* are JUnit 4 unit tests; ide/* are light platform tes
    - fails if the tag ≠ `pluginVersion` or CHANGELOG has no entry for it;
    - runs `check buildPlugin verifyPlugin`;
    - runs `signPlugin` if `CERTIFICATE_CHAIN` and `PRIVATE_KEY` (+ `PRIVATE_KEY_PASSWORD`) are set;
-   - runs `publishPlugin` if `PUBLISH_TOKEN` is set too (a `-beta.N` suffix publishes to that channel);
-   - creates the GitHub release with the changelog entry as notes and the ZIP attached (pre-release for `-` versions).
+   - creates the GitHub release with the changelog entry as notes and the ZIP attached (pre-release for `-` versions);
+   - runs `publishPlugin` last, if `PUBLISH_TOKEN` is set too (a `-beta.N` suffix publishes to that channel). A rejected
+     upload fails the job but leaves the GitHub release and ZIP in place.
 3. The **first Marketplace upload is manual** (JetBrains requires it): upload the signed ZIP from the GitHub release on
-   plugins.jetbrains.com, then add the `PUBLISH_TOKEN` secret so later tags publish automatically.
+   plugins.jetbrains.com. Later tags publish automatically. `PUBLISH_TOKEN` is set, so until the plugin exists on
+   the Marketplace the publish step fails, which is expected.
 
 `build.yml` (push to main and PRs) runs build, `check`, Qodana and the Plugin Verifier. It no longer drafts releases.
 
 ## Decisions & lessons log (newest first — keep this current)
+
+- **2026-11-17 — relicensed Apache 2.0 → MIT** (owner's request; the owner is the sole author of every commit, so no
+  contributor sign-off was needed). The store description gained a "Why you'll want it" section with use cases.
+  Marketplace publishing is already automated in `release.yml`: it needs the first manual upload plus the
+  `PUBLISH_TOKEN` secret. All four secrets are now set. The owner chose to upload 2.0.1 by hand as the first Marketplace
+  version. `release.yml` now creates the GitHub release before publishing, so a rejected publish (expected for 2.0.1)
+  still leaves the signed ZIP to upload.
 
 - **2026-11-17 — `make setup-mac` looked hung.** It was compiling from source. Homebrew installed outside its default
   prefix (here `~/homebrew`) can't pour bottles that hard-code `/opt/homebrew/Cellar`. openjdk@21 needs glib, gettext,

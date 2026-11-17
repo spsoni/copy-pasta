@@ -78,14 +78,8 @@ jobs:
         if: ${{ env.CERTIFICATE_CHAIN != '' && env.PRIVATE_KEY != '' }}
         run: ./gradlew signPlugin
 
-      - name: Publish to JetBrains Marketplace
-        if: ${{ env.PUBLISH_TOKEN != '' && env.CERTIFICATE_CHAIN != '' }}
-        run: ./gradlew publishPlugin
-
-      - name: Note skipped publishing
-        if: ${{ env.PUBLISH_TOKEN == '' || env.CERTIFICATE_CHAIN == '' }}
-        run: echo "::warning::Marketplace publishing skipped (signing secrets or PUBLISH_TOKEN not set). Upload the ZIP from the GitHub release manually."
-
+      # The GitHub release comes before publishing so the ZIP is always attached, even if the Marketplace rejects the
+      # upload (for example before the first manual upload has created the plugin there).
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -99,3 +93,11 @@ jobs:
             --title "Copy-Pasta ${{ steps.meta.outputs.version }}" \
             --notes-file "$RUNNER_TEMP/notes.md" \
             --verify-tag $PRERELEASE
+
+      - name: Publish to JetBrains Marketplace
+        if: ${{ env.PUBLISH_TOKEN != '' && env.CERTIFICATE_CHAIN != '' }}
+        run: ./gradlew publishPlugin
+
+      - name: Note skipped publishing
+        if: ${{ env.PUBLISH_TOKEN == '' || env.CERTIFICATE_CHAIN == '' }}
+        run: echo "::warning::Marketplace publishing skipped (signing secrets or PUBLISH_TOKEN not set). Upload the ZIP from the GitHub release manually."
