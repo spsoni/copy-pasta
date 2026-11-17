@@ -1,10 +1,21 @@
-# Copy-Pasta
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="src/main/resources/META-INF/pluginIcon_dark.svg">
+    <img src="src/main/resources/META-INF/pluginIcon.svg" width="96" height="96" alt="Copy-Pasta icon: a clipboard holding three wavy lines">
+  </picture>
+</p>
 
-[![Build](https://github.com/spsoni/copy-pasta/actions/workflows/build.yml/badge.svg)](https://github.com/spsoni/copy-pasta/actions/workflows/build.yml)
-[![Release](https://img.shields.io/github/v/release/spsoni/copy-pasta)](https://github.com/spsoni/copy-pasta/releases/latest)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+<h1 align="center">Copy-Pasta</h1>
 
-**Send files and folders through any chat, and get them back as real files in another JetBrains IDE.**
+<p align="center">
+  <strong>Send files and folders through any chat, and get them back as real files in another JetBrains IDE.</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/spsoni/copy-pasta/actions/workflows/build.yml"><img src="https://github.com/spsoni/copy-pasta/actions/workflows/build.yml/badge.svg" alt="Build"></a>
+  <a href="https://github.com/spsoni/copy-pasta/releases/latest"><img src="https://img.shields.io/github/v/release/spsoni/copy-pasta" alt="Release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+</p>
 
 <!-- Plugin description -->
 **Copy-Pasta** sends files and folders through any chat. It packs your selection into a single block of text for Slack, Teams, email, a forum or a support ticket. The recipient copies that text and pastes it into their IDE, where it becomes the same files again. They see exactly what will be written first.
