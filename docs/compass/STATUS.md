@@ -13,6 +13,7 @@
 2. 005 Rust CLI `copy-pasta copy | paste`, passing the vectors
 3. 006 macOS Finder integration (Quick Action first) · 007 Windows Explorer menu
 4. 008 host-neutral envelope wording once a second product ships
+5. 009 public website on GitHub Pages (owner's request, 2026-11-17): plan right after 2.1.1
 
 ## Blocked / decisions needed
 - VS Code Marketplace publisher + Open VSX account (owner), before 004 ships.

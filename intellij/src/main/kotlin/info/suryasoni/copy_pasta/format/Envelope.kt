@@ -1,6 +1,7 @@
 package info.suryasoni.copy_pasta.format
 
 import java.util.Base64
+import java.util.regex.Pattern
 
 /**
  * The text that goes on the clipboard. It is built to survive chat apps and email:
@@ -26,9 +27,11 @@ object Envelope {
 
     // A match may only start at the beginning of a run of dashes, and the run is taken possessively. Without that,
     // a long line of dashes (a log, a table) took quadratic time: 64k dashes took 17 s. These run on the EDT.
-    private val BEGIN = Regex("""(?<!-)-{3,}+\s*+BEGIN (COPY-PASTA(?: ENCRYPTED)?)\s*-{3,}""", RegexOption.IGNORE_CASE)
-    private val END = Regex("""(?<!-)-{3,}+\s*+END COPY-PASTA(?: ENCRYPTED)?\s*-{3,}""", RegexOption.IGNORE_CASE)
-    private val FORMAT_LINE = Regex("""Format:\s*(\d+)\s*;\s*length:\s*(\d+)""", RegexOption.IGNORE_CASE)
+    // Case-insensitive for ASCII letters only (no UNICODE_CASE, which Kotlin's IGNORE_CASE adds): otherwise "PAſTA"
+    // or "BEGıN" would match here but not in other implementations (spec/FORMAT.md, character classes).
+    private val BEGIN = asciiCaseInsensitive("""(?<!-)-{3,}+\s*+BEGIN (COPY-PASTA(?: ENCRYPTED)?)\s*-{3,}""")
+    private val END = asciiCaseInsensitive("""(?<!-)-{3,}+\s*+END COPY-PASTA(?: ENCRYPTED)?\s*-{3,}""")
+    private val FORMAT_LINE = asciiCaseInsensitive("""Format:\s*(\d+)\s*;\s*length:\s*(\d+)""")
     private val QUOTE_PREFIX = Regex("""^[\s>]+""")
     private val BASE64_LINE = Regex("""[A-Za-z0-9+/=]+""")
     private val SUMMARY_LINE = Regex("""Copy-Pasta:\s*([^\r\n]{1,120}?)\.\s+Paste it""")
@@ -108,8 +111,12 @@ object Envelope {
             }
         val body = bodyLines.joinToString("") { line -> line.filterNot { it.isWhitespace() } }
 
-        if (end == null || (expected >= 0 && body.length < expected)) {
-            throw EnvelopeException(Problem.INCOMPLETE, received = body.length, expected = maxOf(expected, 0))
+        if (end == null) throw EnvelopeException(Problem.INCOMPLETE, received = body.length, expected = maxOf(expected, 0))
+        // A complete body is pure ASCII Base64. Checking that first means lengths never depend on how a language
+        // counts non-ASCII characters (UTF-16 units here, bytes or code points elsewhere).
+        if (body.any { it.code > 0x7F }) throw EnvelopeException(Problem.CORRUPTED)
+        if (expected >= 0 && body.length < expected) {
+            throw EnvelopeException(Problem.INCOMPLETE, received = body.length, expected = expected)
         }
         if (expected >= 0 && body.length != expected) throw EnvelopeException(Problem.CORRUPTED)
         val payload =
@@ -120,4 +127,6 @@ object Envelope {
             }
         return Decoded(payload, encrypted)
     }
+
+    private fun asciiCaseInsensitive(pattern: String): Regex = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE).toRegex()
 }

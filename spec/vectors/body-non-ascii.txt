@@ -1,0 +1,4 @@
+-----BEGIN COPY-PASTA-----
+Format: 2; length: 10
+AAAAAAA😀
+-----END COPY-PASTA-----

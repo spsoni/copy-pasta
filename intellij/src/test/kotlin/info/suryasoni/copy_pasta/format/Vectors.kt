@@ -31,6 +31,7 @@ object Vectors {
         val files: List<ExpectedFile>?,
         val encrypted: Boolean?,
         val blocked: List<String>,
+        val blockedOnWindows: List<String>,
         val summary: String?,
         val maxMillis: Long?,
     ) {
@@ -68,6 +69,7 @@ object Vectors {
                 },
                 encrypted = expect["encrypted"]?.takeUnless { it.isJsonNull }?.asBoolean,
                 blocked = expect.getAsJsonArray("blocked")?.map { it.asString }.orEmpty(),
+                blockedOnWindows = expect.getAsJsonArray("blockedOnWindows")?.map { it.asString }.orEmpty(),
                 summary = expect.stringOrNull("summary"),
                 maxMillis = case["maxMillis"]?.takeUnless { it.isJsonNull }?.asLong,
             )

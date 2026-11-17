@@ -105,10 +105,16 @@ truncation as such instead of failing with a confusing error.
    U+00A0, U+1680, U+2000–200A, U+2028, U+2029, U+202F, U+205F and U+3000 (Java's `Character.isWhitespace` or
    `isSpaceChar`). Not U+0085, U+180E, U+200B or U+FEFF.
 
-4. **Completeness.** If there was no END marker, or a length was declared and the body is shorter: **INCOMPLETE**.
-   Readers SHOULD tell the user how much arrived (body length) and how much was expected (declared length).
-5. **Exactness.** If a length was declared and the body is longer: **CORRUPTED**.
-6. **Decode** the body as standard Base64 (RFC 4648 §4 alphabet only; never the URL-safe `-` and `_`):
+4. **Completeness and exactness**, in this order:
+   1. no END marker: **INCOMPLETE**;
+   2. any non-ASCII character left in the body: **CORRUPTED** (so lengths never depend on how a language counts
+      non-ASCII characters);
+   3. a length was declared and the body is shorter: **INCOMPLETE**;
+   4. a length was declared and the body is longer: **CORRUPTED**.
+
+   For INCOMPLETE, readers SHOULD tell the user how much arrived (body length) and how much was expected (declared
+   length).
+5. **Decode** the body as standard Base64 (RFC 4648 §4 alphabet only; never the URL-safe `-` and `_`):
    - padding is optional, but if present, the final 4-character unit must be exactly `xx==` or `xxx=`;
    - a final unit of one character, `=` anywhere else, or anything after the padding gives **CORRUPTED**;
    - non-zero unused bits in the last character are ignored (`QR==` decodes like `QQ==`);
@@ -143,7 +149,9 @@ The decoded bytes are a ZIP archive (§4).
 ```
 
 - **Key:** PBKDF2-HMAC-SHA256 over the passphrase's UTF-8 bytes, with the salt and iteration count from the payload,
-  32 bytes long. No Unicode normalisation is applied to the passphrase.
+  32 bytes long. No Unicode normalisation is applied to the passphrase. The passphrase MUST be non-empty, well-formed
+  Unicode: writers refuse unpaired UTF-16 surrogates (the JDK would encode one as `?`, other languages differently
+  or not at all, so the text could never be decrypted elsewhere).
 - **Cipher:** AES-256-GCM, 12-byte IV, 128-bit tag appended to the ciphertext, no additional authenticated data. The
   plaintext is a ZIP archive (§4).
 - **Writers** use a fresh random salt and IV from a cryptographically secure generator for every copy, and
@@ -151,8 +159,8 @@ The decoded bytes are a ZIP archive (§4).
 - **Readers** take the iteration count from the payload, never from a constant. They MUST reject, before deriving
   any key, with **INVALID_ARCHIVE**:
   - a payload that doesn't start with `CPv2`;
-  - a payload of 36 bytes or fewer (no ciphertext);
-  - an iteration count outside 1–5,000,000, so crafted text can't make the reader spin for minutes.
+  - a payload shorter than 52 bytes (no room for the 16-byte GCM tag);
+  - an iteration count (signed int32) outside 1–5,000,000, so crafted text can't make the reader spin for minutes.
 - A failed GCM tag check gives **WRONG_PASSPHRASE**: a wrong passphrase or tampered text, never garbage output.
 - The passphrase is never stored or logged.
 
@@ -189,11 +197,12 @@ whose 30-byte header is cut short; everything after it, including the central di
    Unicode normalisation (NFC/NFD) is applied.
 4. Skip directory entries: names ending in `/`, tested on the raw name before step 5 (`a\` is a file named `a`).
 5. **Normalise the name:**
-   1. replace `\` with `/`;
-   2. reject a name that starts with `/`, or with a drive letter and colon (`^[A-Za-z]:`), with **INVALID_ARCHIVE**;
-   3. split on `/` and drop empty segments and `.`;
-   4. reject an empty result, or any `..` segment, with **INVALID_ARCHIVE**;
-   5. join the remaining segments with `/`. This is the file's path from here on.
+   1. reject a name containing NUL or any of U+0001–001F with **INVALID_ARCHIVE**;
+   2. replace `\` with `/`;
+   3. reject a name that starts with `/`, or with a drive letter and colon (`^[A-Za-z]:`), with **INVALID_ARCHIVE**;
+   4. split on `/` and drop empty segments and `.`;
+   5. reject an empty result, or any `..` segment, with **INVALID_ARCHIVE**;
+   6. join the remaining segments with `/`. This is the file's path from here on.
 
    Treat every segment as an opaque file name when writing: create files one segment at a time below the target,
    and never hand the path to a path-join that interprets prefixes (Rust's `PathBuf::push("C:")` on Windows replaces
@@ -255,11 +264,35 @@ Before writing anything, readers MUST show the user every file with its status a
 
 An entry is **BLOCKED** when:
 
-- any path segment, lower-cased, is `.git`, `.hg`, `.svn`, `.bzr` or `cvs`. VCS metadata can execute code: hooks,
-  `fsmonitor` configuration;
-- it duplicates an earlier entry. On a case-insensitive target, the comparison is case-insensitive;
+- any path segment names **VCS metadata**, which can execute code (hooks, `fsmonitor` configuration). Compare
+  each segment after removing the code points HFS+ ignores (U+200B–200F, U+202A–202E, U+2060–206F, U+FEFF),
+  stripping trailing `.` and spaces (Windows drops them), NFC-normalising and *folding*: `.git`, `.hg`, `.svn`,
+  `.bzr`, `cvs`, or the Windows 8.3 short names `git~1`, `hg~1`, `svn~1`, `bzr~1`. (A `.git` created while
+  another name already shortened to `GIT~1` gets `GIT~2` or a hashed short name; git itself only guards `git~1`,
+  and so does this rule.)
+
+  *Folding* means, per code point, upper-case then lower-case (Java's `Character.toLowerCase(toUpperCase(cp))`,
+  Unicode simple case mapping), as case-insensitive file systems compare names: U+017F `ſ` → `s`, U+0131 `ı` → `i`,
+  U+212A (Kelvin) → `k`. So `.ſvn` is `.svn` on APFS or ext4 casefold;
+- **an existing component of its path inside the target, or the file itself, is a symbolic link** (including a
+  broken one) **or a special file** (FIFO, socket, device). Writing there would leave the target folder, overwrite
+  the file the link points to, or block on a device. Check on disk without following links. On Windows, every
+  reparse point that isn't a symlink reports as "other", including ordinary OneDrive placeholders, so there block a
+  junction or other reparse point only when its real path is outside the target's real path. Re-check immediately
+  before writing each file and refuse (never follow) if a link has appeared since the plan. A name the platform
+  can't represent as a path is blocked too;
+- on a **Windows target**, a segment contains `:` (a drive or an NTFS alternate data stream), `<`, `>`, `"`, `|`,
+  `?` or `*`; ends with `.` or a space; or, folded and with everything from the first `.` removed and trailing spaces
+  trimmed, is a reserved device name: `con`, `prn`, `aux`, `nul`, `com0`–`com9`, `lpt0`–`lpt9`, or `com`/`lpt`
+  followed by `¹`, `²` or `³` (`con.txt` is the console, `COM¹` a serial port). Other targets accept these names
+  (`12:30.log` is a fine Linux file name);
+- it duplicates an earlier entry: paths are compared after NFC normalisation (macOS treats NFC and NFD spellings as
+  one name), and on a case-insensitive target also after folding;
 - its path is also a folder that another entry needs (`p/x` alongside `p/x/y.txt`);
 - an existing folder sits at its path, or an existing file sits where it needs a folder.
+
+Symlinks can't be expressed in vectors (they live in the recipient's folder), so every implementation needs its own
+test for that rule.
 
 The preview SHOULD label executable files and any other permissions that aren't `rw-r--r--`. It MUST NOT interpret
 paths as markup: some UI toolkits render text that starts with `<html>` as HTML.

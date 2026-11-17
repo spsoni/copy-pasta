@@ -7,6 +7,7 @@ import com.intellij.ui.dsl.builder.COLUMNS_MEDIUM
 import com.intellij.ui.dsl.builder.columns
 import com.intellij.ui.dsl.builder.panel
 import info.suryasoni.copy_pasta.CopyPastaBundle.message
+import info.suryasoni.copy_pasta.format.Crypto
 import javax.swing.JComponent
 
 /** Asks for a passphrase. With [confirm], asks twice (used when encrypting). The passphrase is never stored. */
@@ -24,7 +25,13 @@ class PassphraseDialog private constructor(project: Project?, private val confir
             cell(passphraseField)
                 .columns(COLUMNS_MEDIUM)
                 .focused()
-                .validationOnApply { if (it.password.isEmpty()) error(message("passphrase.empty")) else null }
+                .validationOnApply {
+                    when {
+                        it.password.isEmpty() -> error(message("passphrase.empty"))
+                        !Crypto.isWellFormed(it.password) -> error(message("passphrase.malformed"))
+                        else -> null
+                    }
+                }
         }
         if (confirm) {
             row(message("passphrase.confirm")) {

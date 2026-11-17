@@ -34,7 +34,29 @@ object Crypto {
 
     private val random = SecureRandom()
 
+    /**
+     * False when [passphrase] contains an unpaired UTF-16 surrogate. The JDK would encode it as `?` for the key, while
+     * other implementations encode it differently or can't represent it at all, so the text could never be decrypted
+     * elsewhere.
+     */
+    fun isWellFormed(passphrase: CharArray): Boolean {
+        var i = 0
+        while (i < passphrase.size) {
+            val c = passphrase[i]
+            when {
+                Character.isHighSurrogate(c) -> {
+                    if (i + 1 >= passphrase.size || !Character.isLowSurrogate(passphrase[i + 1])) return false
+                    i += 2
+                }
+                Character.isLowSurrogate(c) -> return false
+                else -> i++
+            }
+        }
+        return true
+    }
+
     fun encrypt(data: ByteArray, passphrase: CharArray, iterations: Int = ITERATIONS): ByteArray {
+        require(isWellFormed(passphrase)) { "passphrase contains an unpaired surrogate" }
         val salt = ByteArray(SALT_BYTES).also(random::nextBytes)
         val iv = ByteArray(IV_BYTES).also(random::nextBytes)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
@@ -48,7 +70,8 @@ object Crypto {
         val saltStart = iterationsStart + Int.SIZE_BYTES
         val ivStart = saltStart + SALT_BYTES
         val dataStart = ivStart + IV_BYTES
-        if (payload.size <= dataStart || !payload.copyOfRange(0, MAGIC.size).contentEquals(MAGIC)) {
+        // Too short to hold even the 16-byte GCM tag: reject before the (deliberately slow) key derivation.
+        if (payload.size < dataStart + GCM_TAG_BITS / 8 || !payload.copyOfRange(0, MAGIC.size).contentEquals(MAGIC)) {
             throw InvalidArchiveException("not an encrypted Copy-Pasta payload")
         }
         val iterations = ByteBuffer.wrap(payload, iterationsStart, Int.SIZE_BYTES).int

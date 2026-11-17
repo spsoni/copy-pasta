@@ -708,6 +708,195 @@
       }
     },
     {
+      "name": "label-unicode-case",
+      "description": "Markers are case-insensitive for ASCII only: \"PAſTA\" (long s, U+017F) is not \"PASTA\".",
+      "file": "label-unicode-case.txt",
+      "passphrase": null,
+      "expect": {
+        "error": "NOT_FOUND"
+      }
+    },
+    {
+      "name": "body-non-ascii",
+      "description": "A non-ASCII character in a complete body is damage, whatever the length says.",
+      "file": "body-non-ascii.txt",
+      "passphrase": null,
+      "expect": {
+        "error": "CORRUPTED"
+      }
+    },
+    {
+      "name": "encrypted-too-short-for-tag",
+      "description": "A CPv2 payload with no room for the 16-byte GCM tag is rejected before key derivation (5M iterations).",
+      "file": "encrypted-too-short-for-tag.txt",
+      "passphrase": "x",
+      "maxMillis": 2000,
+      "expect": {
+        "error": "INVALID_ARCHIVE"
+      }
+    },
+    {
+      "name": "zip-name-control-character",
+      "description": "A control character (U+0001) in an entry name.",
+      "file": "zip-name-control-character.txt",
+      "passphrase": null,
+      "expect": {
+        "error": "INVALID_ARCHIVE"
+      }
+    },
+    {
+      "name": "zip-name-invalid-utf8",
+      "description": "An entry name that isn't valid UTF-8 (a lead byte followed by ASCII).",
+      "file": "zip-name-invalid-utf8.txt",
+      "passphrase": null,
+      "expect": {
+        "error": "INVALID_ARCHIVE"
+      }
+    },
+    {
+      "name": "zip-truncated-deflate",
+      "description": "Deflated data cut off in the middle of an entry.",
+      "file": "zip-truncated-deflate.txt",
+      "passphrase": null,
+      "expect": {
+        "error": "INVALID_ARCHIVE"
+      }
+    },
+    {
+      "name": "vcs-lookalikes-blocked",
+      "description": "Names that are VCS metadata on Windows or macOS: trailing dot or space, 8.3 short names, an HFS+-ignored character (U+200C), a letter that case-folds to ASCII (U+017F long s).",
+      "file": "vcs-lookalikes-blocked.txt",
+      "passphrase": null,
+      "expect": {
+        "files": [
+          {
+            "path": ".git./hooks/a",
+            "content": "eA==",
+            "mode": null,
+            "executable": false
+          },
+          {
+            "path": ".git /hooks/b",
+            "content": "eA==",
+            "mode": null,
+            "executable": false
+          },
+          {
+            "path": "GIT~1/hooks/c",
+            "content": "eA==",
+            "mode": null,
+            "executable": false
+          },
+          {
+            "path": ".g‌it/hooks/d",
+            "content": "eA==",
+            "mode": null,
+            "executable": false
+          },
+          {
+            "path": "HG~1/hgrc",
+            "content": "eA==",
+            "mode": null,
+            "executable": false
+          },
+          {
+            "path": "svn~1/entries",
+            "content": "eA==",
+            "mode": null,
+            "executable": false
+          },
+          {
+            "path": "bzr~1/branch.conf",
+            "content": "eA==",
+            "mode": null,
+            "executable": false
+          },
+          {
+            "path": ".ſvn/entries",
+            "content": "eA==",
+            "mode": null,
+            "executable": false
+          },
+          {
+            "path": "ok.txt",
+            "content": "eA==",
+            "mode": null,
+            "executable": false
+          }
+        ],
+        "blocked": [
+          ".git./hooks/a",
+          ".git /hooks/b",
+          "GIT~1/hooks/c",
+          ".g‌it/hooks/d",
+          "HG~1/hgrc",
+          "svn~1/entries",
+          "bzr~1/branch.conf",
+          ".ſvn/entries"
+        ]
+      }
+    },
+    {
+      "name": "windows-unsafe-names",
+      "description": "Decodes, but on Windows a colon (drive or alternate data stream), a device name (also COM0 and the superscript COM¹) or a trailing dot is blocked.",
+      "file": "windows-unsafe-names.txt",
+      "passphrase": null,
+      "expect": {
+        "files": [
+          {
+            "path": "a/C:/x.txt",
+            "content": "eA==",
+            "mode": null,
+            "executable": false
+          },
+          {
+            "path": "notes.txt:stream",
+            "content": "eA==",
+            "mode": null,
+            "executable": false
+          },
+          {
+            "path": "con.txt",
+            "content": "eA==",
+            "mode": null,
+            "executable": false
+          },
+          {
+            "path": "COM0",
+            "content": "eA==",
+            "mode": null,
+            "executable": false
+          },
+          {
+            "path": "com¹.log",
+            "content": "eA==",
+            "mode": null,
+            "executable": false
+          },
+          {
+            "path": "trail./x",
+            "content": "eA==",
+            "mode": null,
+            "executable": false
+          },
+          {
+            "path": "ok.txt",
+            "content": "eA==",
+            "mode": null,
+            "executable": false
+          }
+        ],
+        "blockedOnWindows": [
+          "a/C:/x.txt",
+          "notes.txt:stream",
+          "con.txt",
+          "COM0",
+          "com¹.log",
+          "trail./x"
+        ]
+      }
+    },
+    {
       "name": "summary-sanitized",
       "description": "The summary line is untrusted: only letters, digits, spaces and ,.- survive, capped at 60 characters.",
       "file": "summary-sanitized.txt",

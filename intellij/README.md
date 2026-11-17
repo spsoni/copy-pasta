@@ -13,6 +13,8 @@
 
 <p align="center">
   <a href="https://github.com/spsoni/copy-pasta/actions/workflows/build.yml"><img src="https://github.com/spsoni/copy-pasta/actions/workflows/build.yml/badge.svg" alt="Build"></a>
+  <a href="https://plugins.jetbrains.com/plugin/36213-copy-pasta"><img src="https://img.shields.io/jetbrains/plugin/v/36213?label=JetBrains%20Marketplace" alt="JetBrains Marketplace version"></a>
+  <a href="https://plugins.jetbrains.com/plugin/36213-copy-pasta"><img src="https://img.shields.io/jetbrains/plugin/d/36213" alt="JetBrains Marketplace downloads"></a>
   <a href="https://github.com/spsoni/copy-pasta/releases/latest"><img src="https://img.shields.io/github/v/release/spsoni/copy-pasta" alt="Release"></a>
   <a href="../LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
 </p>
@@ -68,7 +70,7 @@ Works in IntelliJ IDEA, PyCharm, WebStorm, GoLand, Rider, CLion, PhpStorm, RubyM
 
 ## Installation
 
-- **JetBrains Marketplace**: Settings | Plugins | Marketplace, then search for "Copy-Pasta".
+- **JetBrains Marketplace**: install from the [Copy-Pasta plugin page](https://plugins.jetbrains.com/plugin/36213-copy-pasta), or in the IDE go to Settings | Plugins | Marketplace and search for "Copy-Pasta".
 - **Manual**: download the ZIP from [Releases](https://github.com/spsoni/copy-pasta/releases), then go to Settings | Plugins | ⚙️ | Install Plugin from Disk…
 
 ## What the text looks like

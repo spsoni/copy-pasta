@@ -5,12 +5,20 @@ import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.SystemInfo
+import com.intellij.openapi.vfs.VFileProperty
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import info.suryasoni.copy_pasta.CopyPastaBundle
 import info.suryasoni.copy_pasta.format.FileEntry
 import info.suryasoni.copy_pasta.format.FileMode
+import info.suryasoni.copy_pasta.format.PathRules
 import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.InvalidPathException
+import java.nio.file.LinkOption
+import java.nio.file.Path
+import java.nio.file.attribute.BasicFileAttributes
 
 enum class PasteStatus { NEW, OVERWRITE, IDENTICAL, BLOCKED }
 
@@ -21,16 +29,65 @@ class PlannedFile(val entry: FileEntry, val status: PasteStatus)
  * History label means the IDE sees every change and the whole paste can be reverted from Local History.
  */
 object PasteWriter {
-    /** Folders a pasted archive must never write into: VCS metadata can execute code (hooks, fsmonitor config). */
-    private val FORBIDDEN_SEGMENTS = setOf(".git", ".hg", ".svn", ".bzr", "cvs")
+    /** True when a segment of [path] must never be written: VCS metadata anywhere, unsafe names on Windows. */
+    private fun forbiddenName(path: String, windows: Boolean): Boolean =
+        path.split('/').any { PathRules.isVcsMetadata(it) || (windows && PathRules.isUnsafeOnWindows(it)) }
+
+    /**
+     * True when an existing component of [path] below [target], or the file itself, is a symbolic link, leads out of
+     * the target (a Windows junction or mount point), or is a special file (FIFO, socket, device). Writing there would
+     * follow the link out of the target folder or overwrite the file it points to. Checked on disk without following
+     * links, so broken links count too; the VFS flag covers file systems without a disk path.
+     *
+     * Windows reports every reparse point as "other", including OneDrive placeholders, which are ordinary folders
+     * for our purposes. So there, a non-symlink reparse point is blocked only when its real path leaves the target.
+     */
+    private fun linkOnPath(target: VirtualFile, path: String, windows: Boolean = SystemInfo.isWindows): Boolean {
+        val segments = path.split('/')
+        val base = target.fileSystem.getNioPath(target)
+        if (base != null) {
+            try {
+                var current: Path = base
+                for (segment in segments) {
+                    current = current.resolve(segment)
+                    val attributes =
+                        try {
+                            Files.readAttributes(current, BasicFileAttributes::class.java, LinkOption.NOFOLLOW_LINKS)
+                        } catch (_: IOException) {
+                            return false // doesn't exist: nothing below it exists either
+                        }
+                    if (attributes.isSymbolicLink) return true
+                    if (attributes.isOther && (!windows || !current.toRealPath().startsWith(base.toRealPath()))) return true
+                }
+                return false
+            } catch (_: InvalidPathException) {
+                return true // a name this platform can't represent (e.g. non-ASCII under a C locale): don't write it
+            } catch (_: IOException) {
+                return true // toRealPath failed on something that exists: be safe
+            }
+        }
+        var dir = target
+        for (segment in segments) {
+            val child = dir.findChild(segment) ?: return false
+            if (child.`is`(VFileProperty.SYMLINK)) return true
+            dir = child
+        }
+        return false
+    }
 
     /**
      * Works out what each entry would do in [target]. Call inside a read action. Entries are BLOCKED when they would
-     * write into VCS metadata, duplicate another entry (case-insensitively on case-insensitive file systems), sit
-     * where another entry needs a folder, or clash with an existing file or folder.
+     * write into VCS metadata, through a symbolic link, under a name Windows can't hold safely (on Windows), duplicate
+     * another entry (case-insensitively on case-insensitive file systems), sit where another entry needs a folder, or
+     * clash with an existing file or folder.
      */
-    fun plan(target: VirtualFile, files: List<FileEntry>, caseSensitive: Boolean = target.fileSystem.isCaseSensitive): List<PlannedFile> {
-        fun key(path: String) = if (caseSensitive) path else path.lowercase()
+    fun plan(
+        target: VirtualFile,
+        files: List<FileEntry>,
+        caseSensitive: Boolean = target.fileSystem.isCaseSensitive,
+        windows: Boolean = SystemInfo.isWindows,
+    ): List<PlannedFile> {
+        fun key(path: String) = PathRules.sameFileKey(path, caseSensitive)
         val folders =
             files.flatMapTo(HashSet()) { file ->
                 file.path.split('/').dropLast(1).runningReduce { parent, segment -> "$parent/$segment" }.map(::key)
@@ -39,9 +96,10 @@ object PasteWriter {
         return files.map { entry ->
             val status =
                 when {
-                    entry.path.split('/').any { it.lowercase() in FORBIDDEN_SEGMENTS } -> PasteStatus.BLOCKED
+                    forbiddenName(entry.path, windows) -> PasteStatus.BLOCKED
                     !seen.add(key(entry.path)) -> PasteStatus.BLOCKED
                     key(entry.path) in folders -> PasteStatus.BLOCKED
+                    linkOnPath(target, entry.path) -> PasteStatus.BLOCKED
                     else -> statusOf(target, entry)
                 }
             PlannedFile(entry, status)
@@ -53,11 +111,12 @@ object PasteWriter {
         var dir = target
         for (segment in segments.dropLast(1)) {
             val child = dir.findChild(segment) ?: return PasteStatus.NEW
-            if (!child.isDirectory) return PasteStatus.BLOCKED // a file sits where a folder is needed
+            if (!child.isDirectory || child.`is`(VFileProperty.SYMLINK)) return PasteStatus.BLOCKED
             dir = child
         }
         val existing = dir.findChild(segments.last()) ?: return PasteStatus.NEW
         return when {
+            existing.`is`(VFileProperty.SYMLINK) -> PasteStatus.BLOCKED
             existing.isDirectory -> PasteStatus.BLOCKED
             existing.length == entry.bytes.size.toLong() &&
                 existing.contentsToByteArray().contentEquals(entry.bytes) &&
@@ -110,6 +169,11 @@ object PasteWriter {
             .withName(CopyPastaBundle.message("paste.commandName"))
             .compute<List<VirtualFile>, IOException> {
                 files.map { entry ->
+                    // The preview only offers entries plan() allowed, but the tree may have changed since: check again
+                    // right before writing, and never follow a link out of the target.
+                    if (forbiddenName(entry.path, SystemInfo.isWindows) || linkOnPath(target, entry.path)) {
+                        throw IOException("refusing to write ${entry.path}: it goes through a symbolic link or a protected name")
+                    }
                     val parentPath = entry.path.substringBeforeLast('/', "")
                     val name = entry.path.substringAfterLast('/')
                     val dir =
