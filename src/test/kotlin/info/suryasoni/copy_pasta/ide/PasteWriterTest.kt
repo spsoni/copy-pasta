@@ -1,8 +1,12 @@
 package info.suryasoni.copy_pasta.ide
 
+import com.intellij.openapi.util.SystemInfo
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import info.suryasoni.copy_pasta.format.FileEntry
+import java.nio.file.Files
+import java.nio.file.attribute.PosixFilePermissions
 
 class PasteWriterTest : BasePlatformTestCase() {
     private fun entry(path: String, text: String) = FileEntry(path, text.toByteArray())
@@ -71,5 +75,60 @@ class PasteWriterTest : BasePlatformTestCase() {
         assertEquals(2, written.size)
         assertEquals("a", VfsUtilCore.loadText(target.findFileByRelativePath("deep/nested/a.txt")!!))
         assertEquals("new", VfsUtilCore.loadText(target.findChild("changed.txt")!!))
+    }
+
+    fun `test write applies safe permissions on a real disk`() {
+        if (SystemInfo.isWindows) return
+        val dir = Files.createTempDirectory("copy-pasta-perms")
+        try {
+            val target = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(dir)!!
+            Files.writeString(dir.resolve("legacy.sh"), "old")
+            Files.setPosixFilePermissions(dir.resolve("legacy.sh"), PosixFilePermissions.fromString("rw-------"))
+
+            PasteWriter.write(
+                project,
+                target,
+                listOf(
+                    FileEntry("key.pem", "k".toByteArray(), executable = false, mode = "600".toInt(8)),
+                    FileEntry("run.sh", "r".toByteArray(), executable = true, mode = "777".toInt(8)),
+                    FileEntry("legacy.sh", "new".toByteArray(), executable = true), // 2.0 text: flag only
+                ),
+            )
+
+            fun perms(name: String) = PosixFilePermissions.toString(Files.getPosixFilePermissions(dir.resolve(name)))
+            assertEquals("rw-------", perms("key.pem"))
+            assertEquals("rwxr-xr-x", perms("run.sh")) // assumes the usual umask 022 or 002
+            assertEquals("rwx------", perms("legacy.sh"))
+        } finally {
+            dir.toFile().deleteRecursively()
+        }
+    }
+
+    fun `test overwrite never widens access, and a permissions-only change is not identical`() {
+        if (SystemInfo.isWindows) return
+        val dir = Files.createTempDirectory("copy-pasta-perms")
+        try {
+            val target = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(dir)!!
+            for (name in listOf("private.txt", "script.sh")) {
+                Files.writeString(dir.resolve(name), "same")
+                Files.setPosixFilePermissions(dir.resolve(name), PosixFilePermissions.fromString("rw-------"))
+            }
+            target.refresh(false, true)
+            val files =
+                listOf(
+                    FileEntry("private.txt", "same".toByteArray(), executable = false, mode = "644".toInt(8)),
+                    FileEntry("script.sh", "same".toByteArray(), executable = true, mode = "755".toInt(8)),
+                )
+
+            val plan = PasteWriter.plan(target, files)
+            assertEquals(listOf(PasteStatus.IDENTICAL, PasteStatus.OVERWRITE), plan.map { it.status })
+
+            PasteWriter.write(project, target, files)
+            fun perms(name: String) = PosixFilePermissions.toString(Files.getPosixFilePermissions(dir.resolve(name)))
+            assertEquals("rw-------", perms("private.txt"))
+            assertEquals("rwx------", perms("script.sh"))
+        } finally {
+            dir.toFile().deleteRecursively()
+        }
     }
 }

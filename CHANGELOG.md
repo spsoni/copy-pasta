@@ -16,6 +16,10 @@
   suggested name includes the local date and time, for example `copy-pasta-2026-11-17-135212.txt`.
 - The Project view menu shows what's on the clipboard, for example **Paste… (3 files, 4.1 KB)**.
 - An error about cut-off or damaged text offers **Paste Text or Open File…**.
+- File permissions travel on macOS and Linux (the full `rwx` bits, not just the executable flag), so private files
+  such as keys stay private. Pasted files are never group- or world-writable, never more open than your umask
+  allows, the owner can always edit them, and special bits such as setuid are never applied. The preview flags unusual permissions. Text from 2.0 still pastes,
+  and 2.0 still reads the executable flag from 2.1 text.
 
 ### Fixed
 

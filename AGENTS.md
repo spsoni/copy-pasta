@@ -3,7 +3,7 @@
 An IntelliJ Platform plugin: **Copy** turns selected files and folders into one self-describing block of text (ZIP →
 Base64, optionally passphrase-encrypted) to paste into any chat. **Paste** previews and recreates the files in another
 IDE. Public repo `github.com/spsoni/copy-pasta`, plugin id `info.suryasoni.copy_pasta`. Free on the JetBrains Marketplace
-(first upload pending as of 2026-11-17).
+(approved and listed as of 2026-11-17).
 
 README.md is the front door and the **source of the Marketplace / install-screen description**. SECURITY.md has the threat
 model. This file records **layout, conventions, decisions and lessons**. Add an entry whenever work here decides or
@@ -47,9 +47,13 @@ src/test/kotlin/   format/* are JUnit 4 unit tests; ide/* are light platform tes
 - **Store listing = README `<!-- Plugin description -->` block.** **Change notes = the CHANGELOG entry for
   `pluginVersion`**, or `[Unreleased]` if there is none. Edit those files, not plugin.xml. Vendor email still to be added.
 - **The envelope is a compatibility contract** between installs: the BEGIN/END markers, `Format: 2; length: N`, a ZIP
-  body, the exec-bit extra field `0x4350`, and the encrypted `CPv2` layout (magic | int32 PBKDF2 iterations | salt | iv |
-  GCM). Readers must accept anything a previous 2.x
-  wrote. A breaking change needs `Format: 3` (older plugins then say "update the plugin") and a CHANGELOG note.
+  body, the permissions extra field `0x4350`, and the encrypted `CPv2` layout (magic | int32 PBKDF2 iterations | salt |
+  iv | GCM). The `0x4350` data layout:
+  - byte 0 is the executable flag. 2.0 wrote only this byte, only for executable files, and reads only it.
+  - bytes 1–2 are the nine permission bits, little-endian (2.1 and later).
+
+  Extend it only by appending bytes. Readers must accept anything a previous 2.x wrote. A breaking change needs
+  `Format: 3` (older plugins then say "update the plugin") and a CHANGELOG note.
 - **Use the IDE instead of re-implementing it**: VFS for reads and writes, ChangeListManager/ProjectFileIndex/
   FileTypeRegistry for ignore rules, Local History for undo. No third-party libraries. In particular, don't use the
   commons-compress copy inside the IDE (it's an internal repackaging) or `com.intellij.util.io.Compressor`
@@ -75,9 +79,8 @@ src/test/kotlin/   format/* are JUnit 4 unit tests; ide/* are light platform tes
    - creates the GitHub release with the changelog entry as notes and the ZIP attached (pre-release for `-` versions);
    - runs `publishPlugin` last, if `PUBLISH_TOKEN` is set too (a `-beta.N` suffix publishes to that channel). A rejected
      upload fails the job but leaves the GitHub release and ZIP in place.
-3. The **first Marketplace upload is manual** (JetBrains requires it): upload the signed ZIP from the GitHub release on
-   plugins.jetbrains.com. Later tags publish automatically. `PUBLISH_TOKEN` is set, so until the plugin exists on
-   the Marketplace the publish step fails, which is expected.
+3. The first Marketplace upload (2.0.1) was manual, as JetBrains requires, and was approved on 2026-11-17. From 2.1.0
+   on, tags publish automatically. New versions still go through JetBrains moderation before they appear.
 
 `build.yml` (push to main and PRs) runs build, `check`, Qodana and the Plugin Verifier. It no longer drafts releases.
 
@@ -95,6 +98,20 @@ src/test/kotlin/   format/* are JUnit 4 unit tests; ide/* are light platform tes
     copy. The widget's click menu has an explicit **Clear from Clipboard** (owner's request). It removes only
     Copy-Pasta entries, from the clipboard and from the IDE's history, via `CopyPasteManagerEx.removeContent`. That
     method is public and not `@Internal`, unlike `removeIf`.
+  - **Full `rwx` permissions travel (owner's request).** The nine bits go in bytes 1–2 of the `0x4350` field, so 2.0
+    readers still get the exec flag and the format stays 2. On paste, `FileMode.safe` = `(mode | 0600) & 0755`:
+    - the owner can always edit, and a later paste can overwrite (read-only intent is deliberately lost);
+    - never group- or world-writable;
+    - setuid, setgid and sticky are never stored.
+
+    `FileMode.applied(sender, current)` then caps group/other at what the file has right after creation (the
+    recipient's umask) or already has (overwrite); group/other read allows execute, so 755 survives umask 022. The
+    independent review caught that without this cap a 2.1 sender's 644 made every file world-readable for a umask-077
+    recipient. Same content with a different resulting mode plans as OVERWRITE, not IDENTICAL. The preview labels
+    anything but 644. Text from 2.0 (exec flag only) adds owner-execute to the current bits, as 2.0
+    did. A failure to set permissions is logged, not fatal: the content is already written. The fixture's temp FS has
+    no NIO path, so `PasteWriterTest` writes to a real temp directory through `LocalFileSystem` to check the applied
+    modes.
   - **Saved files are named `copy-pasta-yyyy-MM-dd-HHmmss.txt` in local time** (`SaveAsFile`). ISO order sorts
     chronologically. The user's regional format isn't used because it often contains `/` or `:`, which Windows or
     macOS reject in file names.
@@ -126,6 +143,11 @@ src/test/kotlin/   format/* are JUnit 4 unit tests; ide/* are light platform tes
   7. A truncated clipboard was a dead end. The error notification now opens the dialog.
 
   Lesson (again): get an independent review for anything that runs on untrusted input automatically.
+
+  Lesson: after `FileEntry` gained a constructor parameter, the tests failed with `NoSuchMethodError` even after
+  `./gradlew clean`. The local Gradle build cache had restored test classes compiled against the old constructor. Fix:
+  `./gradlew compileTestKotlin --rerun --no-build-cache`. A `NoSuchMethodError` in tests means stale classes, not a
+  code bug.
 
   Lesson: the verifier flagged a deprecated `StatusBarWidget.getPresentation(PlatformType)` override that we never
   wrote. Kotlin's default `jvmDefault = enable` generated a bridge for it. `build.gradle.kts` now sets

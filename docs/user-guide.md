@@ -65,7 +65,8 @@ The preview marks every file:
 | **new** | No file exists at that path yet. | Yes |
 | **overwrite** | A file exists there with different content. It will be replaced. | Yes |
 | **identical** | A file exists there with the same content. Nothing to do. | No |
-| **executable** | The file has the executable bit set (for example a shell script). | — |
+| **executable** | The file will be executable (`rwxr-xr-x`), for example a shell script. | — |
+| **rw-------** and the like | The file will get these unusual permissions, for example a private key. See [What gets copied](#what-gets-copied). | — |
 
 Uncheck anything you don't want. Nothing is written until you confirm. Afterwards, **Show** in the notification
 opens the pasted files.
@@ -141,12 +142,30 @@ Copy-Pasta uses the IDE's own idea of what belongs to the project, so there's no
 - **Always included:** anything you selected explicitly, even if it's ignored or excluded. To copy a `build/`
   folder, select it.
 - **Unsaved changes** in open editors are included, so what you see is what you send.
-- **Permissions:** only the executable bit travels, so scripts stay runnable. On macOS and Linux, a file the sender
-  can execute is marked, the preview flags it as **executable**, and the pasted copy is made executable for its
-  owner. Read and write bits, group and other permissions, special bits (setuid and the like), owners and timestamps
-  are not copied: pasted files get the recipient's defaults. Windows has no executable bit, so nothing is recorded or
-  applied there.
-- **Not copied:** empty folders.
+- **Permissions** (macOS and Linux): the read, write and execute bits for owner, group and others travel with each
+  file, so scripts stay runnable and private files such as keys stay private. On paste, Copy-Pasta applies them with
+  four safety rules:
+  - the owner can always read and write the file, so it can be edited and overwritten by a later paste;
+  - the file is never writable by group or others;
+  - group and others never get more access than your system gives new files (your umask) or than the file you're
+    pasting over already gives them, so if your new files are normally private, pasted ones are too;
+  - special bits (setuid, setgid, sticky) are never applied.
+
+  With the usual umask (022):
+
+  | Sender's file | Pasted file |
+  |---|---|
+  | `rw-r--r--` (644) | `rw-r--r--` |
+  | `rwxr-xr-x` (755), e.g. a script | `rwxr-xr-x`, flagged **executable** in the preview |
+  | `rw-------` (600), e.g. a private key | `rw-------`, flagged in the preview |
+  | `rwxrwxrwx` (777) | `rwxr-xr-x` |
+  | `r--r--r--` (444), read-only | `rw-r--r--` |
+
+  The preview flags every file whose permissions aren't the usual `rw-r--r--`. Pasting over an existing file gives it
+  the sender's permissions within the same rules, and a file whose content matches but whose permissions would
+  change is marked *overwrite*, not *identical*. On Windows, permissions are neither recorded nor applied. Text from Copy-Pasta 2.0
+  carries only the executable flag, which makes the file executable for its owner.
+- **Not copied:** owners, timestamps and empty folders.
 
 ## Undo a paste
 

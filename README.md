@@ -40,7 +40,7 @@ Code pasted into chat loses its folder structure, gets re-wrapped and reformatte
 
 **Safe by design**
 
-- **Preview before writing.** Every file is marked *new*, *overwrite* or *identical*, and you can untick any of them. Executable files are flagged.
+- **Preview before writing.** Every file is marked *new*, *overwrite* or *identical*, and you can untick any of them. Executable files and unusual permissions (such as `rw-------`) are flagged.
 - **One-step undo.** Each paste is a single Local History checkpoint.
 - **Path protection.** Entries that would escape the target folder or write into `.git` are blocked.
 - **Optional encryption.** **Copy Encrypted…** protects the content with a passphrase (AES-256-GCM, PBKDF2 with 600,000 iterations). The passphrase is never stored.
@@ -52,7 +52,7 @@ Code pasted into chat loses its folder structure, gets re-wrapped and reformatte
 - Includes unsaved editor changes.
 - Survives email quoting, line re-wrapping and surrounding chat text.
 - Handles long selections: **Save as File…** (named with the local date and time), and the recipient opens it from the Paste dialog.
-- Keeps scripts runnable: the executable bit is carried on macOS and Linux. Other permissions, owners and timestamps are not; pasted files get the recipient's defaults.
+- Keeps file permissions on macOS and Linux: scripts stay runnable and private keys stay private. For safety, pasted files are never writable by group or others, never more open than your umask allows, the owner can always edit them, and special bits (setuid and the like) are never applied. Owners and timestamps aren't copied.
 - Uses a standard ZIP inside, so your content is never locked in.
 - Has no settings and no dependencies, and does its work in the background.
 
@@ -81,7 +81,7 @@ UEsDBBQACAgIA...                      (Base64, 76 characters per line)
 -----END COPY-PASTA-----
 ```
 
-- The body is Base64 of a ZIP. File paths are relative to the selection. The only file metadata kept is the executable bit, stored as a one-byte private ZIP extra field (`0x4350`). There are no Unix modes, owners or timestamps.
+- The body is Base64 of a ZIP. File paths are relative to the selection. Permissions are stored in a private ZIP extra field (`0x4350`): byte 0 is the executable flag (all that 2.0 wrote), and bytes 1–2 hold the nine `rwxrwxrwx` bits (2.1 and later). Owners and timestamps aren't stored.
 - `BEGIN COPY-PASTA ENCRYPTED` means the body is `CPv2` | PBKDF2 iteration count (int32) | 16-byte salt | 12-byte IV |
   AES-256-GCM ciphertext and tag. The key comes from the passphrase via PBKDF2-HMAC-SHA256 (600,000 iterations by default).
 - `length` lets the plugin detect a message cut off by a chat app.

@@ -25,10 +25,17 @@ private in transit**.
   content are encrypted.
 - **Passphrase strength.** There is no strength check. PBKDF2 slows down guessing, but a weak passphrase is still weak.
   Share the passphrase through a different channel than the text.
-- **Executable bit.** Files marked executable by the sender are made executable on paste, for the file's owner only
-  (macOS and Linux). No other mode bits travel: no setuid/setgid, group or other permissions. The preview marks
-  executable files. Review the preview before pasting text from someone you don't trust, as you would with any
-  downloaded script.
+- **Permissions.** The sender's nine `rwx` bits are applied on paste (macOS and Linux), with four limits:
+  - the owner always gets read and write;
+  - group and others never get write;
+  - group and others never get more access than the recipient's umask gives a new file, or than the existing file
+    already gives when it's overwritten (read access allows execute, so a script still runs for whoever could read
+    it). Under umask 077, a pasted file stays owner-only;
+  - setuid, setgid and sticky are never stored or applied.
+
+  So pasted text can make a file executable, but never world-writable or privileged. The preview flags executable
+  files and any other permissions that aren't `rw-r--r--`. Review it before pasting text from someone you don't
+  trust, as you would with any downloaded script.
 - **Clipboard history.** Copy-Pasta text (decrypted content never touches the clipboard) stays in the system clipboard
   and the IDE's clipboard history like anything else you copy. **Clear from Clipboard** in the status bar icon's menu
   removes it from both. Copy-Pasta never clears the clipboard on its own.

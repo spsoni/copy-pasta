@@ -2,13 +2,14 @@ package info.suryasoni.copy_pasta.ide
 
 import com.intellij.history.LocalHistory
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import info.suryasoni.copy_pasta.CopyPastaBundle
 import info.suryasoni.copy_pasta.format.FileEntry
+import info.suryasoni.copy_pasta.format.FileMode
 import java.io.IOException
 
 enum class PasteStatus { NEW, OVERWRITE, IDENTICAL, BLOCKED }
@@ -59,12 +60,46 @@ object PasteWriter {
         return when {
             existing.isDirectory -> PasteStatus.BLOCKED
             existing.length == entry.bytes.size.toLong() &&
-                existing.contentsToByteArray().contentEquals(
-                    entry.bytes,
-                ) -> PasteStatus.IDENTICAL
+                existing.contentsToByteArray().contentEquals(entry.bytes) &&
+                !permissionsWouldChange(existing, entry) -> PasteStatus.IDENTICAL
             else -> PasteStatus.OVERWRITE
         }
     }
+
+    /**
+     * The permissions a paste gives a file that now has [current] (macOS and Linux only), or null to leave them:
+     * - a known mode goes through [FileMode.applied], so it never widens group or other access beyond the
+     *   recipient's umask or the existing file;
+     * - text from Copy-Pasta 2.0 carries only the executable flag, which adds owner-execute, as 2.0 did;
+     * - otherwise the file keeps what it has.
+     */
+    private fun targetMode(entry: FileEntry, current: Int): Int? = when {
+        entry.mode != null -> FileMode.applied(entry.mode, current)
+        entry.executable -> current or FileMode.OWNER_EXECUTE
+        else -> null
+    }
+
+    private fun permissionsWouldChange(existing: VirtualFile, entry: FileEntry): Boolean {
+        val current = PosixMode.of(existing) ?: return false
+        return targetMode(entry, current)?.let { it != current } ?: false
+    }
+
+    /** Applies the sender's permissions after writing. The content is already written, so a failure is only logged. */
+    private fun applyPermissions(file: VirtualFile, entry: FileEntry) {
+        if (entry.mode == null && !entry.executable) return
+        val current = PosixMode.of(file) ?: return
+        val target = targetMode(entry, current) ?: return
+        if (target == current) return
+        try {
+            PosixMode.set(file, target)
+        } catch (e: UnsupportedOperationException) {
+            LOG.debug("No POSIX permissions on ${file.presentableUrl}", e) // e.g. FAT on a USB drive
+        } catch (e: IOException) {
+            LOG.warn("Could not set permissions on ${file.presentableUrl}", e)
+        }
+    }
+
+    private val LOG = logger<PasteWriter>()
 
     /** Writes [files] into [target]. Call on the EDT. Returns the written files. */
     fun write(project: Project, target: VirtualFile, files: List<FileEntry>): List<VirtualFile> {
@@ -89,9 +124,7 @@ object PasteWriter {
                     existing?.let { documents.getCachedDocument(it) }?.takeIf(documents::isDocumentUnsaved)?.let(documents::saveDocument)
                     val file = existing ?: dir.createChildData(this, name)
                     file.setBinaryContent(entry.bytes)
-                    if (entry.executable && !SystemInfo.isWindows) {
-                        file.fileSystem.getNioPath(file)?.toFile()?.setExecutable(true)
-                    }
+                    applyPermissions(file, entry)
                     file
                 }
             }
