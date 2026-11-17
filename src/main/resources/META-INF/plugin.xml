@@ -1,41 +1,27 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
-<!-- Name, version, description, change notes and compatibility range are filled in by Gradle (see build.gradle.kts). -->
+<!-- Version, description, change notes and the compatibility range are filled in by Gradle (see build.gradle.kts). -->
 <idea-plugin>
     <id>info.suryasoni.copy_pasta</id>
     <name>Copy-Pasta</name>
-    <vendor email="s3716706@student.rmit.edu.au" url="https://github.com/spsoni">Sury Soni</vendor>
+    <vendor url="https://github.com/spsoni">Sury Soni</vendor>
 
     <depends>com.intellij.modules.platform</depends>
 
+    <resource-bundle>messages.CopyPastaBundle</resource-bundle>
+
     <extensions defaultExtensionNs="com.intellij">
-        <applicationService serviceImplementation="info.suryasoni.copy_pasta.settings.CopyPastaSettingsState"/>
-        <applicationConfigurable
-                instance="info.suryasoni.copy_pasta.settings.CopyPastaSettingsConfigurable"
-                id="info.suryasoni.copy_pasta.settings"
-                parentId="tools"
-                displayName="Copy-Pasta"/>
-        <notificationGroup id="Copy-Pasta" displayType="BALLOON"/>
+        <notificationGroup id="Copy-Pasta" displayType="BALLOON" key="notification.group.name"/>
     </extensions>
 
     <actions>
-        <group id="info.suryasoni.copy_pasta.action.GroupedActions"
-               text="Copy-Pasta"
-               description="Copy-Pasta archive and extract actions"
-               popup="true">
-            <add-to-group
-                    group-id="ProjectViewPopupMenu"
-                    relative-to-action="CopyContentRootPath"
-                    anchor="after"/>
-            <action id="CopyPastaEncodeAsTarAction"
-                    class="info.suryasoni.copy_pasta.actions.CopyPastaEncodeAsTarAction"
-                    text="Copy"
-                    description="Archive the selected files and folders and copy them to the clipboard as text"
-                    icon="AllIcons.Actions.Copy"/>
-            <action id="CopyPastaDecodeAction"
-                    class="info.suryasoni.copy_pasta.actions.CopyPastaDecodeAction"
-                    text="Paste"
-                    description="Extract a Copy-Pasta archive from the clipboard into the selected folder"
-                    icon="AllIcons.Actions.MenuPaste"/>
+        <group id="CopyPasta.ProjectViewGroup" popup="true">
+            <add-to-group group-id="ProjectViewPopupMenu" relative-to-action="CopyContentRootPath" anchor="after"/>
+            <action id="CopyPasta.Copy" class="info.suryasoni.copy_pasta.actions.CopyAction" icon="AllIcons.Actions.Copy"/>
+            <action id="CopyPasta.CopyEncrypted" class="info.suryasoni.copy_pasta.actions.CopyEncryptedAction"/>
+            <action id="CopyPasta.Paste" class="info.suryasoni.copy_pasta.actions.PasteAction" icon="AllIcons.Actions.MenuPaste"/>
         </group>
+        <action id="CopyPasta.PasteFromEditMenu" class="info.suryasoni.copy_pasta.actions.PasteAction">
+            <add-to-group group-id="CutCopyPasteGroup" anchor="last"/>
+        </action>
     </actions>
 </idea-plugin>

@@ -15,15 +15,14 @@ plugins {
 group = providers.gradleProperty("pluginGroup").get()
 version = providers.gradleProperty("pluginVersion").get()
 
-// IntelliJ 2024.3+ runs on Java 21 and bundles Kotlin stdlib 2.0.21. The stdlib is NOT bundled into the
-// plugin (kotlin.stdlib.default.dependency=false), so cap the Kotlin API level at the oldest supported IDE's
-// stdlib; otherwise a newer compiler can emit calls that fail at runtime with NoSuchMethodError.
-// (The language version stays at the compiler default: syntax features don't need runtime support.)
+// Oldest supported IDE is 2025.3: it runs on Java 21 (2026.2+ run Java 25, which runs Java 21 bytecode) and bundles
+// Kotlin stdlib 2.2.20. The stdlib is NOT bundled into the plugin (kotlin.stdlib.default.dependency=false), so the
+// Kotlin API level is capped at 2.2; otherwise the compiler could emit calls that fail at runtime with
+// NoSuchMethodError. The language version stays at the compiler default (syntax needs no runtime support).
 kotlin {
     jvmToolchain(21)
     compilerOptions {
-        apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0
-        freeCompilerArgs.add("-Xsuppress-version-warnings") // API 2.0 is deprecated in Kotlin 2.4 but required by 2024.3
+        apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_2
     }
 }
 
@@ -44,20 +43,19 @@ dependencies {
 
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
-        create(providers.gradleProperty("platformType"), providers.gradleProperty("platformVersion"))
-
-        // Plugin Dependencies. Uses `platformBundledPlugins` property from the gradle.properties file for bundled IntelliJ Platform plugins.
-        bundledPlugins(providers.gradleProperty("platformBundledPlugins").map { it.split(',') })
-
-        // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file for plugin from JetBrains Marketplace.
-        plugins(providers.gradleProperty("platformPlugins").map { it.split(',') })
-
+        // Compile against the LOWEST supported platform so newer-only APIs fail at compile time.
+        // 2025.3+ ships as the unified IntelliJ IDEA distribution. The plugin depends only on the platform module,
+        // so it installs in every JetBrains IDE.
+        intellijIdea(providers.gradleProperty("platformVersion"))
         testFramework(TestFrameworkType.Platform)
     }
 }
 
 // Configure IntelliJ Platform Gradle Plugin - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-extension.html
 intellijPlatform {
+    // No Settings page, so there is nothing to index; skipping it avoids booting a headless IDE on every build.
+    buildSearchableOptions = false
+
     pluginConfiguration {
         name = providers.gradleProperty("pluginName")
         version = providers.gradleProperty("pluginVersion")
@@ -90,7 +88,7 @@ intellijPlatform {
 
         ideaVersion {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
-            untilBuild = provider { null } // open-ended: recommended for 243+, the verifier checks new IDEs
+            untilBuild = provider { null } // open-ended (JetBrains guidance for 243+); CI runs the verifier on new IDEs
         }
     }
 
@@ -136,10 +134,6 @@ kover {
 tasks {
     wrapper {
         gradleVersion = providers.gradleProperty("gradleVersion").get()
-    }
-
-    publishPlugin {
-        dependsOn(patchChangelog)
     }
 
     // The IntelliJ test framework otherwise forks the test JVM with -Xmx2048m (see gradle.properties memory notes).

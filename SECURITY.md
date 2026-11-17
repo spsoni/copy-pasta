@@ -1,31 +1,30 @@
 # Security posture
 
-Copy-Pasta moves files between IDEs as clipboard text. It has no server, no network
-calls, no telemetry and no accounts. What it handles is **untrusted input pasted by the
-user** and **content the user may want to keep private in transit**.
+Copy-Pasta moves files between IDEs as clipboard text. It has no server, makes no network calls, collects no telemetry
+and stores no secrets. What it handles is **untrusted text pasted by the user** and **content the user may want to keep
+private in transit**.
 
 ## Threat model
 
 | Risk | Where | Control |
 |---|---|---|
-| Pasted archive writes outside the chosen folder (path traversal / "zip slip") | `CopyPastaUtils.extractTarGz` | Every entry path is normalised and must stay under the target folder. Otherwise extraction aborts with an error. Covered by a unit test. |
-| Pasted archive plants symlinks / hard links / device files | `extractTarGz` | Only regular files and directories are written. Everything else is skipped. |
-| Copying follows a symlink out of the selection or loops forever | `CopyPastaUtils.addToTar` | Symlinks are not followed when archiving. |
-| Secrets or bulky build output copied by accident | Exclude patterns | Defaults exclude `.git`, virtualenvs, `build`, `dist`, `node_modules`, IDE folders, logs and caches. Users can extend the list. |
-| Clipboard contents read by other apps or chat services | Encryption | AES-256-GCM (authenticated), key from PBKDF2-HMAC-SHA256 (100k iterations) with a random 16-byte salt and 12-byte IV per payload. A wrong key or tampered data fails the GCM tag check, so nothing is extracted. |
-| Huge payload freezes the IDE | Size limit + background tasks | Encoding and extraction run in `Task.Backgroundable`. Copies above the configured limit (default 1 MB of text) are refused. |
+| Pasted archive writes outside the chosen folder (path traversal / "zip slip") | `ZipCodec.safePath` | Absolute paths, drive letters and `..` segments are rejected before anything is planned. Covered by unit tests. |
+| Paste silently overwrites the user's files | `PastePreviewDialog`, `PasteWriter` | Nothing is written before the user confirms a preview listing every file as new, overwrite or identical. Writes go through the VFS after a Local History label, so the whole paste can be reverted. |
+| Zip bomb (small text, huge expansion) | `ZipCodec.decode` | 200 MB total and 10,000 entries cap, checked while reading. Duplicate entries are rejected. |
+| Links or special files planted by a crafted archive | `ZipCodec` / `PasteWriter` | Only regular file content is written. ZIP entries carry no symlink semantics in this format. |
+| Copy follows a symlink out of the selection or loops | `CopyCollector` | Symlinks are not followed or copied. |
+| Secrets or build output copied by accident | `CopyCollector` | VCS-ignored files, IDE-excluded folders and the IDE's global ignore list are skipped, unless the user explicitly selects them. |
+| Clipboard contents read by chat services or other apps | `Crypto` | Optional AES-256-GCM with a PBKDF2-HMAC-SHA256 key (100k iterations), random 16-byte salt and 12-byte IV per copy. A wrong passphrase or tampered text fails authentication; nothing is extracted. The passphrase is never stored, and its char array is cleared after use. |
+| Huge selection freezes the IDE | Size caps, background tasks | 10 MB per file (skipped and reported) and 50 MB per copy (refused). Collection, encryption and decoding run in `Task.Backgroundable`. |
 
 ## Known limitations
 
-- **Default key.** The plugin ships with a shared default key (`default_key_123456`) so
-  two fresh installs can exchange payloads. That is obfuscation, not secrecy. Set your own
-  key in Settings | Tools | Copy-Pasta when the content is private, and share it out of band.
-- **Key storage.** The key is stored in plain text in the IDE's `CopyPastaSettings.xml`
-  (application settings), not in the IDE password safe.
-- **Overwrites.** Pasting replaces existing files with the same names in the target
-  folder, without asking.
-- **Decompression size.** Extraction does not cap the total decompressed size. A crafted
-  small payload could expand to a large amount of disk.
+- **Visible metadata.** The header line of an encrypted copy shows the file count and total size. File names and
+  content are encrypted.
+- **Passphrase strength.** There is no strength check. PBKDF2 slows down guessing, but a weak passphrase is still weak.
+  Share the passphrase through a different channel than the text.
+- **Executable bit.** Files marked executable by the sender are made executable on paste (Unix only). Review the preview
+  before pasting text from someone you don't trust, as you would with any downloaded script.
 
 ## Reporting
 

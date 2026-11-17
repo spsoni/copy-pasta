@@ -3,33 +3,43 @@
 # Copy-Pasta Changelog
 
 ## [Unreleased]
+
+A redesign focused on safe pasting and chat-proof text. **Text copied with 1.x can't be pasted with 2.x.**
+
 ### Added
-- Settings checkbox for encrypting copied content (it was previously always on).
-- Unit tests for archiving, extraction, exclusion and encryption.
+
+- A paste preview: every file is marked new, overwrite or identical, with checkboxes, before anything is written.
+- One Local History checkpoint per paste, so a whole paste can be reverted.
+- Self-describing text with BEGIN/END markers, a readable header line, and detection of messages cut off by chat apps.
+- **Copy Encrypted…** with a passphrase that is never stored (AES-256-GCM, PBKDF2).
+- **Edit | Paste Files from Copy-Pasta…** in addition to the Project view menu.
+- Warnings when the text is likely too long for chat apps, and when large files are skipped.
 
 ### Changed
-- Encryption now uses AES-256-GCM with a PBKDF2-derived key and a random salt and IV. **Payloads from 1.x can't be pasted with 2.x.**
-- Settings moved to the application level (Settings | Tools | Copy-Pasta) and rebuilt with the Kotlin UI DSL. The encryption key field is now masked.
-- Copy and Paste run as background tasks and use the IDE clipboard.
-- The menu actions are hidden when they don't apply to the selection. Paste into a selected file targets that file's folder.
-- Compatibility: IntelliJ-based IDEs 2024.3 and newer (no upper bound). Built with Kotlin 2.4 and Gradle 9.
+
+- Files ignored by your VCS, excluded folders and the IDE's ignored files are skipped automatically, replacing the
+  hand-maintained exclude patterns. Folders you select explicitly are always copied.
+- Unsaved editor changes are included in the copy.
+- The content is a standard ZIP instead of tar.gz; the plugin no longer depends on a library bundled with the IDE.
+- Requires a 2025.3 or newer JetBrains IDE.
+
+### Removed
+
+- The Settings page, the stored encryption key and its shared default value.
+- Clearing the clipboard after a paste.
 
 ### Fixed
-- Pasting could write files outside the target folder (path traversal / "zip slip").
-- Pasting unencrypted content always failed, because gzip data was mistaken for encrypted data.
-- The encryption key was derived incorrectly, so many keys produced invalid AES key lengths.
-- Exclude patterns such as `.git/*` or `build/*` never matched.
-- The clipboard was cleared even when pasting failed.
-- Notifications used an unregistered notification group.
 
-## [1.2.0] - 2023-12-01
-### Added
-- Code cleanup to address Qodana reported issues.
+- Pasted archives could write outside the target folder.
+- Pasting unencrypted text always failed.
+- Exclude patterns never matched.
+- Pasted files bypassed the IDE's virtual file system, so editors and Local History didn't see them.
 
-## [1.1.0] - 2023-11-01
-### Added
-- Code cleanup to address Qodana reported issues.
+## [1.0.0] - 2025-07-19
 
-## [1.0.0] - 2023-10-01
 ### Added
-- Initial release of Copy-Pasta, a tool for managing and sharing code snippets.
+
+- Initial release: copy files and folders to the clipboard as Base64 text and paste them back, with optional encryption.
+
+[Unreleased]: https://github.com/spsoni/copy-pasta/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/spsoni/copy-pasta/commits/v1.0.0
