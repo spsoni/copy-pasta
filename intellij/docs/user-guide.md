@@ -114,7 +114,7 @@ passphrase:
   Anyone who has both can read the files.
 - The passphrase is never stored, by either side. If it's lost, the content can't be recovered.
 - The content is encrypted with AES-256-GCM, using a key derived with PBKDF2-HMAC-SHA256 (600,000 iterations). A
-  wrong passphrase and tampered text give the same error, and nothing is written. See [SECURITY.md](../SECURITY.md)
+  wrong passphrase and tampered text give the same error, and nothing is written. See [SECURITY.md](../../SECURITY.md)
   for the threat model.
 
 ## Long text and chat limits

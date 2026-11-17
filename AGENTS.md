@@ -5,8 +5,10 @@ Base64, optionally passphrase-encrypted) to paste into any chat. **Paste** previ
 IDE. Public repo `github.com/spsoni/copy-pasta`, plugin id `info.suryasoni.copy_pasta`. Free on the JetBrains Marketplace
 (approved and listed as of 2026-11-17).
 
-README.md is the front door and the **source of the Marketplace / install-screen description**. SECURITY.md has the threat
-model. This file records **layout, conventions, decisions and lessons**. Add an entry whenever work here decides or
+The repository is a **monorepo** (since 2026-11-17): the JetBrains plugin lives in `intellij/`; a VS Code extension and
+macOS/Windows right-click menus (a Rust CLI) are planned beside it. They share no code, only the clipboard format. The
+root README.md is the umbrella front door; **`intellij/README.md` is the source of the Marketplace / install-screen
+description**. SECURITY.md has the threat model. Feature arcs follow Compass (`docs/compass/`). This file records **layout, conventions, decisions and lessons**. Add an entry whenever work here decides or
 learns something.
 
 ## Tooling
@@ -18,7 +20,9 @@ learns something.
   find it, and enables the hook. Add new host tools to the Brewfile only if they're worth their dependency tree (see the
   2026-11-17 setup-mac entry). Render icon previews with the built-in `sips`, not librsvg. Makefile recipes must work
   with both GNU and BSD tools: macOS `sed -i` needs a suffix, so use `sed -i.bak … && rm -f file.bak`.
-- Prefer the **Makefile**: `make help`. `make check` = ktlint + unit and platform tests + Kover (what CI runs).
+- Prefer the **Makefile** at the repository root: `make help`. Its targets run Gradle in `intellij/`
+  (`intellij/gradlew -p intellij`). `make check` = ktlint + unit and platform tests + Kover (what CI runs). To run
+  Gradle directly, `cd intellij` first.
 - **Run `make format` before committing.** The pre-commit hook (`.githooks/`, enabled by `make hooks`) blocks commits
   that fail ktlint or the tests. Bypass only in an emergency with `git commit --no-verify`.
 - Builds are tuned to fit about 3 GB (see `gradle.properties` and the 2026-11-17 log entry). Don't raise heaps or workers
@@ -28,7 +32,10 @@ learns something.
 ## Layout
 
 ```
-src/main/kotlin/info/suryasoni/copy_pasta/
+README.md, LICENSE, SECURITY.md, AGENTS.md, Makefile, Brewfile, .githooks/, .github/   repository-wide
+docs/compass/   Compass status board and stories (plans with a scope list and acceptance evidence).
+intellij/       the JetBrains plugin: build.gradle.kts, gradle/, gradlew, qodana.yml, CHANGELOG.md, README.md, and:
+src/main/kotlin/info/suryasoni/copy_pasta/        (paths below are relative to intellij/)
   format/   IDE-free and unit-tested. Envelope (text wrapper), ZipCodec (JDK zip, path safety, size caps), Crypto.
   ide/      CopyCollector (VFS walk using VCS/IDE ignore rules), PasteWriter (plan + VFS write), Notifier,
             ClipboardWatcher (app service: clipboard → ClipboardStatus, published on a topic; IDE-free status logic).
@@ -37,15 +44,15 @@ src/main/kotlin/info/suryasoni/copy_pasta/
   actions/  CopyAction / CopyEncryptedAction (+ Save as File…), PasteAction / PasteFromEditMenuAction, PasteFlow
             (the decode → preview → write pipeline shared by the actions and the widget).
   CopyPastaBundle.kt + resources/messages/CopyPastaBundle.properties   All UI text, including action names.
-docs/user-guide.md + docs/images/   End-user documentation (linked from README). Update it with any UI change.
+docs/user-guide.md + docs/images/   End-user documentation (linked from intellij/README.md). Update it with any UI change.
 src/main/resources/META-INF/   plugin.xml, pluginIcon.svg, pluginIcon_dark.svg (40×40, original artwork).
 src/test/kotlin/   format/* are JUnit 4 unit tests; ide/* are light platform tests (BasePlatformTestCase).
 ```
 
 ## Conventions / invariants
 
-- **Store listing = README `<!-- Plugin description -->` block.** **Change notes = the CHANGELOG entry for
-  `pluginVersion`**, or `[Unreleased]` if there is none. Edit those files, not plugin.xml. Vendor email still to be added.
+- **Store listing = `intellij/README.md` `<!-- Plugin description -->` block.** **Change notes = the
+  `intellij/CHANGELOG.md` entry for `pluginVersion`**, or `[Unreleased]` if there is none. Edit those files, not plugin.xml. Vendor email still to be added.
 - **The envelope is a compatibility contract** between installs: the BEGIN/END markers, `Format: 2; length: N`, a ZIP
   body, the permissions extra field `0x4350`, and the encrypted `CPv2` layout (magic | int32 PBKDF2 iterations | salt |
   iv | GCM). The `0x4350` data layout:
@@ -82,9 +89,26 @@ src/test/kotlin/   format/* are JUnit 4 unit tests; ide/* are light platform tes
 3. The first Marketplace upload (2.0.1) was manual, as JetBrains requires, and was approved on 2026-11-17. From 2.1.0
    on, tags publish automatically. New versions still go through JetBrains moderation before they appear.
 
-`build.yml` (push to main and PRs) runs build, `check`, Qodana and the Plugin Verifier. It no longer drafts releases.
+`build.yml` (push to main and PRs) runs build, `check`, Qodana and the Plugin Verifier, only when `intellij/`, `spec/`
+or the workflow changes. It no longer drafts releases. JetBrains plugin tags stay `vX.Y.Z`; other products will use
+`vscode-v…` and `desktop-v…`, which release.yml's tag pattern doesn't match.
 
 ## Decisions & lessons log (newest first — keep this current)
+
+- **2026-11-17 — monorepo (owner-approved plan, Compass stories 001–002).** After 2.1.0 shipped (the first automatic
+  Marketplace publish worked), the owner wants a VS Code extension and macOS/Windows right-click menus that all
+  interoperate. Decisions:
+  - **One repository, no shared code.** IntelliJ must be Kotlin, VS Code TypeScript, the desktop menus native; the
+    format is a few hundred lines per language. Interop comes from a language-neutral spec plus golden test vectors
+    that every implementation's CI must pass (story 002), not from a shared library.
+  - **Desktop = one Rust CLI with thin OS hooks** (owner's choice): a single binary for macOS and Windows, scriptable,
+    easy to test against the vectors.
+  - **Tags:** IntelliJ keeps `vX.Y.Z` (owner's choice), so the release flow is unchanged; new products get prefixes.
+  - **Layout:** the plugin moved into `intellij/` with `git mv` (history follows). The root README became an umbrella;
+    the store description moved with the plugin's README, so `build.gradle.kts` didn't change. The built ZIP was
+    compared with 2.1.0's: same files, same jar entries, identical `plugin.xml`.
+  - CI is path-filtered. That's safe only because `main` has no branch protection; a required check that a path filter
+    skips would block merging.
 
 - **2026-11-17 — v2.1 paste UX (owner-approved).** The recipient forgetting to copy the message was the main
   stumbling block. Decisions:

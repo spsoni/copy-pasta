@@ -7,7 +7,8 @@
 #
 # Cut a release locally with `make release VERSION=X.Y.Z`, then push the commit and tag.
 # Secrets: CERTIFICATE_CHAIN, PRIVATE_KEY, PRIVATE_KEY_PASSWORD (signing), PUBLISH_TOKEN (Marketplace).
-# The first Marketplace upload must be manual: take the signed ZIP from the GitHub release.
+# This releases the JetBrains plugin in intellij/. Its tags stay `vX.Y.Z`; other products in this repository use
+# prefixed tags (`vscode-v…`, `desktop-v…`), which the pattern below doesn't match.
 
 name: Release
 on:
@@ -30,6 +31,9 @@ jobs:
       PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
       PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
       PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+    defaults:
+      run:
+        working-directory: intellij
     steps:
       - name: Fetch Sources
         uses: actions/checkout@v7
