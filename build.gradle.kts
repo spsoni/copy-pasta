@@ -136,6 +136,11 @@ tasks {
         gradleVersion = providers.gradleProperty("gradleVersion").get()
     }
 
+    // Gradle 9 rejects running both in one build unless the dependency is declared (not declared by the plugin as of 2.19).
+    verifyPluginSignature {
+        dependsOn(signPlugin)
+    }
+
     // The IntelliJ test framework otherwise forks the test JVM with -Xmx2048m (see gradle.properties memory notes).
     withType<Test>().configureEach {
         maxHeapSize = "1g"

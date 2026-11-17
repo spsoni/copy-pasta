@@ -93,7 +93,9 @@ jobs:
         run: |
           PRERELEASE=""
           if [ "${{ steps.meta.outputs.prerelease }}" = "true" ]; then PRERELEASE="--prerelease"; fi
-          gh release create "$GITHUB_REF_NAME" build/distributions/*.zip \
+          # Attach the signed ZIP when signing ran (that is the one to upload to the Marketplace), else the plain build.
+          ZIP="$(ls build/distributions/*-signed.zip 2>/dev/null || ls build/distributions/*.zip)"
+          gh release create "$GITHUB_REF_NAME" "$ZIP" \
             --title "Copy-Pasta ${{ steps.meta.outputs.version }}" \
             --notes-file "$RUNNER_TEMP/notes.md" \
             --verify-tag $PRERELEASE
