@@ -7,6 +7,7 @@ import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
+import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
@@ -22,11 +23,14 @@ import com.intellij.util.ui.JBUI
 import info.suryasoni.copy_pasta.CopyPastaBundle.message
 import info.suryasoni.copy_pasta.actions.PasteAction
 import info.suryasoni.copy_pasta.actions.PasteFlow
+import info.suryasoni.copy_pasta.actions.SaveAsFile
+import info.suryasoni.copy_pasta.format.Envelope
 import info.suryasoni.copy_pasta.ide.ClipboardStatus
 import info.suryasoni.copy_pasta.ide.ClipboardWatcher
 import info.suryasoni.copy_pasta.ide.Notifier
 import java.awt.Cursor
 import java.awt.Point
+import java.awt.datatransfer.DataFlavor
 import java.awt.event.MouseEvent
 import javax.swing.JComponent
 import javax.swing.Timer
@@ -119,6 +123,7 @@ class ClipboardStatusWidget(private val project: Project) : CustomStatusBarWidge
                 DumbAwareAction.create(message("widget.menu.pasteRoot")) { pasteInto(PasteAction.projectRoot(project)) },
                 DumbAwareAction.create(message("widget.menu.pasteFolder")) { chooseFolderAndPaste() },
                 Separator.getInstance(),
+                DumbAwareAction.create(message("widget.menu.save")) { saveAsFile() },
                 DumbAwareAction.create(message("widget.menu.clear")) { clear() },
             )
         val popup =
@@ -154,6 +159,16 @@ class ClipboardStatusWidget(private val project: Project) : CustomStatusBarWidge
                 Notifier.error(project, message("widget.folderNotWritable", folder.presentableUrl))
             }
         }
+    }
+
+    /** Saves the clipboard's Copy-Pasta text as a file, for sending as an attachment. */
+    private fun saveAsFile() {
+        val text = CopyPasteManager.getInstance().getContents<String>(DataFlavor.stringFlavor)
+        if (text == null || !Envelope.looksLikeEnvelope(text)) {
+            Notifier.error(project, message("widget.nothingToSave"))
+            return
+        }
+        SaveAsFile.save(project, text)
     }
 
     private fun clear() {

@@ -95,7 +95,11 @@ src/test/kotlin/   format/* are JUnit 4 unit tests; ide/* are light platform tes
     copy. The widget's click menu has an explicit **Clear from Clipboard** (owner's request). It removes only
     Copy-Pasta entries, from the clipboard and from the IDE's history, via `CopyPasteManagerEx.removeContent`. That
     method is public and not `@Internal`, unlike `removeIf`.
-  - **The widget opens a menu instead of pasting on click:** Paste into Project Root… / Paste into Folder… / Clear.
+  - **Saved files are named `copy-pasta-yyyy-MM-dd-HHmmss.txt` in local time** (`SaveAsFile`). ISO order sorts
+    chronologically. The user's regional format isn't used because it often contains `/` or `:`, which Windows or
+    macOS reject in file names.
+  - **The widget opens a menu instead of pasting on click:** Paste into Project Root… / Paste into Folder… /
+    Save as File… / Clear.
     The folder chooser fixes the "project root only" limitation, and a stray click can't paste the sender's own copy
     back.
   - **No polling.** ClipboardWatcher refreshes on IDE clipboard changes and on window activation. Menu text and the

@@ -8,11 +8,12 @@
 
 - A status bar icon that appears while the clipboard holds Copy-Pasta text. It pulses once when new text arrives, dims
   after the text has been pasted, and disappears when you copy something else. Click it to paste into the project
-  root or a chosen folder, or to clear Copy-Pasta text from the clipboard and the IDE's clipboard history. Hide it
-  from the status bar's context menu.
+  root or a chosen folder, save the text as a file, or clear Copy-Pasta text from the clipboard and the IDE's
+  clipboard history. Hide it from the status bar's context menu.
 - **Paste…** no longer stops with an error when the clipboard holds something else. It opens a dialog where you can
   paste the message or open a file that contains it, and it reports cut-off or damaged text right there.
-- **Save as File…** on the "long for chat" notification saves the text as a `.txt` file to send as an attachment.
+- **Save as File…** on the "long for chat" notification saves the text as a `.txt` file to send as an attachment. The
+  suggested name includes the local date and time, for example `copy-pasta-2026-11-17-135212.txt`.
 - The Project view menu shows what's on the clipboard, for example **Paste… (3 files, 4.1 KB)**.
 - An error about cut-off or damaged text offers **Paste Text or Open File…**.
 

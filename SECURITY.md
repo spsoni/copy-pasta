@@ -25,8 +25,13 @@ private in transit**.
   content are encrypted.
 - **Passphrase strength.** There is no strength check. PBKDF2 slows down guessing, but a weak passphrase is still weak.
   Share the passphrase through a different channel than the text.
-- **Executable bit.** Files marked executable by the sender are made executable on paste (Unix only). The preview marks
-  them. Review the preview before pasting text from someone you don't trust, as you would with any downloaded script.
+- **Executable bit.** Files marked executable by the sender are made executable on paste, for the file's owner only
+  (macOS and Linux). No other mode bits travel: no setuid/setgid, group or other permissions. The preview marks
+  executable files. Review the preview before pasting text from someone you don't trust, as you would with any
+  downloaded script.
+- **Clipboard history.** Copy-Pasta text (decrypted content never touches the clipboard) stays in the system clipboard
+  and the IDE's clipboard history like anything else you copy. **Clear from Clipboard** in the status bar icon's menu
+  removes it from both. Copy-Pasta never clears the clipboard on its own.
 
 ## Reporting
 

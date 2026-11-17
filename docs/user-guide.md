@@ -88,6 +88,8 @@ A clipboard icon in the status bar shows when there is Copy-Pasta text to paste:
 Click the icon for a menu:
 
 - **Paste into Project Root…** and **Paste into Folder…** open the usual preview first.
+- **Save as File…** saves the text as a `.txt` file to send as an attachment, named with the local date and time,
+  for example `copy-pasta-2026-11-17-135212.txt`.
 - **Clear from Clipboard** removes Copy-Pasta text from the clipboard and from the IDE's clipboard history
   (**Edit | Paste from History**). Nothing else you copied is touched, and the clipboard goes back to whatever you
   copied before. This is useful after pasting sensitive files.
@@ -139,7 +141,12 @@ Copy-Pasta uses the IDE's own idea of what belongs to the project, so there's no
 - **Always included:** anything you selected explicitly, even if it's ignored or excluded. To copy a `build/`
   folder, select it.
 - **Unsaved changes** in open editors are included, so what you see is what you send.
-- The **executable bit** is kept. Other permissions, timestamps and empty folders are not.
+- **Permissions:** only the executable bit travels, so scripts stay runnable. On macOS and Linux, a file the sender
+  can execute is marked, the preview flags it as **executable**, and the pasted copy is made executable for its
+  owner. Read and write bits, group and other permissions, special bits (setuid and the like), owners and timestamps
+  are not copied: pasted files get the recipient's defaults. Windows has no executable bit, so nothing is recorded or
+  applied there.
+- **Not copied:** empty folders.
 
 ## Undo a paste
 
