@@ -13,6 +13,10 @@ learns something.
 
 - **JDK 21** (installed on dev01 as `openjdk-21-jdk-headless`; `librsvg2-bin` for rendering icon previews). Gradle comes
   from the wrapper.
+- **macOS: `make setup-mac`** installs the `Brewfile` with `brew bundle` (openjdk@21, gradle, gh, actionlint,
+  shellcheck, librsvg), links the keg-only JDK into `~/Library/Java/JavaVirtualMachines` so `java_home`, Gradle and
+  IntelliJ find it, and enables the hook. Add new host tools to the Brewfile. Makefile recipes must work with both GNU
+  and BSD tools: macOS `sed -i` needs a suffix, so use `sed -i.bak … && rm -f file.bak`.
 - Prefer the **Makefile**: `make help`. `make check` = ktlint + unit and platform tests + Kover (what CI runs).
 - **Run `make format` before committing.** The pre-commit hook (`.githooks/`, enabled by `make hooks`) blocks commits
   that fail ktlint or the tests. Bypass only in an emergency with `git commit --no-verify`.
