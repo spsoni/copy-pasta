@@ -1,0 +1,7 @@
+-----BEGIN COPY-PASTA-----
+Copy-Pasta: 1 file, 1 KB. Paste it with the Copy-Pasta plugin for JetBrains IDEs: https://github.com/spsoni/copy-pasta
+Format: 2; length: 188
+UEsDBBQACAgIAAAAIVwAAAAAAAAAAAAAAAALAAAAQzovZXZpbC50eHSrAABQSwcIgxbcjAMAAAAB
+AAAAUEsBAhQAFAAICAgAAAAhXIMW3IwDAAAAAQAAAAsAAAAAAAAAAAAAAAAAAAAAAEM6L2V2aWwu
+dHh0UEsFBgAAAAABAAEAOQAAADwAAAAAAA==
+-----END COPY-PASTA-----

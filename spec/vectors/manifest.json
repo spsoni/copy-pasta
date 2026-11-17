@@ -1,0 +1,734 @@
+{
+  "format": 2,
+  "spec": "../FORMAT.md",
+  "cases": [
+    {
+      "name": "plain-project",
+      "description": "A plain envelope with text, binary, empty, executable, private and non-ASCII files.",
+      "file": "plain-project.txt",
+      "passphrase": null,
+      "expect": {
+        "files": [
+          {
+            "path": "demo/README.md",
+            "content": "IyBEZW1vCg==",
+            "mode": "0644",
+            "executable": false
+          },
+          {
+            "path": "demo/src/main.kt",
+            "content": "ZnVuIG1haW4oKSA9IHByaW50bG4oImhpIikK",
+            "mode": "0644",
+            "executable": false
+          },
+          {
+            "path": "demo/run.sh",
+            "content": "IyEvYmluL3NoCmVjaG8gaGkK",
+            "mode": "0755",
+            "executable": true
+          },
+          {
+            "path": "demo/secret.pem",
+            "content": "cHJpdmF0ZSBrZXkgbWF0ZXJpYWwK",
+            "mode": "0600",
+            "executable": false
+          },
+          {
+            "path": "demo/empty.txt",
+            "content": "",
+            "mode": "0644",
+            "executable": false
+          },
+          {
+            "path": "demo/bin.dat",
+            "content": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==",
+            "mode": "0644",
+            "executable": false
+          },
+          {
+            "path": "demo/unicodé/naïve.txt",
+            "content": "R3LDvMOfZSwg5LiW55WMCg==",
+            "mode": "0644",
+            "executable": false
+          }
+        ],
+        "encrypted": false,
+        "summary": "7 files, 1 KB"
+      }
+    },
+    {
+      "name": "encrypted-project",
+      "description": "The same tree, encrypted with 600,000 PBKDF2 iterations (the current default).",
+      "file": "encrypted-project.txt",
+      "passphrase": "correct horse battery staple",
+      "expect": {
+        "files": [
+          {
+            "path": "demo/README.md",
+            "content": "IyBEZW1vCg==",
+            "mode": "0644",
+            "executable": false
+          },
+          {
+            "path": "demo/src/main.kt",
+            "content": "ZnVuIG1haW4oKSA9IHByaW50bG4oImhpIikK",
+            "mode": "0644",
+            "executable": false
+          },
+          {
+            "path": "demo/run.sh",
+            "content": "IyEvYmluL3NoCmVjaG8gaGkK",
+            "mode": "0755",
+            "executable": true
+          },
+          {
+            "path": "demo/secret.pem",
+            "content": "cHJpdmF0ZSBrZXkgbWF0ZXJpYWwK",
+            "mode": "0600",
+            "executable": false
+          },
+          {
+            "path": "demo/empty.txt",
+            "content": "",
+            "mode": "0644",
+            "executable": false
+          },
+          {
+            "path": "demo/bin.dat",
+            "content": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==",
+            "mode": "0644",
+            "executable": false
+          },
+          {
+            "path": "demo/unicodé/naïve.txt",
+            "content": "R3LDvMOfZSwg5LiW55WMCg==",
+            "mode": "0644",
+            "executable": false
+          }
+        ],
+        "encrypted": true,
+        "summary": "7 files, 1 KB"
+      }
+    },
+    {
+      "name": "encrypted-one-iteration",
+      "description": "Readers take the iteration count from the payload (any value from 1 to 5,000,000), never a constant.",
+      "file": "encrypted-one-iteration.txt",
+      "passphrase": "pw",
+      "expect": {
+        "files": [
+          {
+            "path": "hello/hello.txt",
+            "content": "SGVsbG8sIHdvcmxkIQo=",
+            "mode": "0644",
+            "executable": false
+          },
+          {
+            "path": "hello/run.sh",
+            "content": "IyEvYmluL3NoCmVjaG8gaGVsbG8K",
+            "mode": "0755",
+            "executable": true
+          }
+        ],
+        "encrypted": true
+      }
+    },
+    {
+      "name": "encrypted-wrong-passphrase",
+      "description": "GCM authentication fails, so the error is a wrong passphrase, never garbage output.",
+      "file": "encrypted-wrong-passphrase.txt",
+      "passphrase": "wrong",
+      "expect": {
+        "error": "WRONG_PASSPHRASE"
+      }
+    },
+    {
+      "name": "encrypted-iterations-over-cap",
+      "description": "An iteration count above 5,000,000 is rejected before any key derivation runs.",
+      "file": "encrypted-iterations-over-cap.txt",
+      "passphrase": "x",
+      "expect": {
+        "error": "INVALID_ARCHIVE"
+      }
+    },
+    {
+      "name": "encrypted-label-plain-payload",
+      "description": "An ENCRYPTED label whose body doesn't start with CPv2.",
+      "file": "encrypted-label-plain-payload.txt",
+      "passphrase": "x",
+      "expect": {
+        "error": "INVALID_ARCHIVE"
+      }
+    },
+    {
+      "name": "legacy-2.0-exec-flag",
+      "description": "Copy-Pasta 2.0 wrote a one-byte 0x4350 field, only for executable files: executable, mode unknown.",
+      "file": "legacy-2.0-exec-flag.txt",
+      "passphrase": null,
+      "expect": {
+        "files": [
+          {
+            "path": "tool.sh",
+            "content": "IyEvYmluL3NoCg==",
+            "mode": null,
+            "executable": true
+          },
+          {
+            "path": "notes.txt",
+            "content": "bgo=",
+            "mode": null,
+            "executable": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "extra-field-forward-compat",
+      "description": "Another extra field before 0x4350, and a 0x4350 field longer than 3 bytes (future appended data).",
+      "file": "extra-field-forward-compat.txt",
+      "passphrase": null,
+      "expect": {
+        "files": [
+          {
+            "path": "future.sh",
+            "content": "IyEvYmluL3NoCg==",
+            "mode": "0755",
+            "executable": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "quoted-reply",
+      "description": "Every line quoted with \"> \", as email and chat replies do.",
+      "file": "quoted-reply.txt",
+      "passphrase": null,
+      "expect": {
+        "files": [
+          {
+            "path": "hello/hello.txt",
+            "content": "SGVsbG8sIHdvcmxkIQo=",
+            "mode": "0644",
+            "executable": false
+          },
+          {
+            "path": "hello/run.sh",
+            "content": "IyEvYmluL3NoCmVjaG8gaGVsbG8K",
+            "mode": "0755",
+            "executable": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "crlf",
+      "description": "Windows line endings.",
+      "file": "crlf.txt",
+      "passphrase": null,
+      "expect": {
+        "files": [
+          {
+            "path": "hello/hello.txt",
+            "content": "SGVsbG8sIHdvcmxkIQo=",
+            "mode": "0644",
+            "executable": false
+          },
+          {
+            "path": "hello/run.sh",
+            "content": "IyEvYmluL3NoCmVjaG8gaGVsbG8K",
+            "mode": "0755",
+            "executable": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "collapsed-newlines",
+      "description": "A chat app turned every newline into a space.",
+      "file": "collapsed-newlines.txt",
+      "passphrase": null,
+      "expect": {
+        "files": [
+          {
+            "path": "hello/hello.txt",
+            "content": "SGVsbG8sIHdvcmxkIQo=",
+            "mode": "0644",
+            "executable": false
+          },
+          {
+            "path": "hello/run.sh",
+            "content": "IyEvYmluL3NoCmVjaG8gaGVsbG8K",
+            "mode": "0755",
+            "executable": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "chat-wrapped",
+      "description": "Chat text before and after the envelope.",
+      "file": "chat-wrapped.txt",
+      "passphrase": null,
+      "expect": {
+        "files": [
+          {
+            "path": "hello/hello.txt",
+            "content": "SGVsbG8sIHdvcmxkIQo=",
+            "mode": "0644",
+            "executable": false
+          },
+          {
+            "path": "hello/run.sh",
+            "content": "IyEvYmluL3NoCmVjaG8gaGVsbG8K",
+            "mode": "0755",
+            "executable": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "lowercase-markers",
+      "description": "Markers are case-insensitive.",
+      "file": "lowercase-markers.txt",
+      "passphrase": null,
+      "expect": {
+        "files": [
+          {
+            "path": "hello/hello.txt",
+            "content": "SGVsbG8sIHdvcmxkIQo=",
+            "mode": "0644",
+            "executable": false
+          },
+          {
+            "path": "hello/run.sh",
+            "content": "IyEvYmluL3NoCmVjaG8gaGVsbG8K",
+            "mode": "0755",
+            "executable": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "rewrapped-body",
+      "description": "The Base64 body re-wrapped at 60 columns with trailing spaces and indentation.",
+      "file": "rewrapped-body.txt",
+      "passphrase": null,
+      "expect": {
+        "files": [
+          {
+            "path": "hello/hello.txt",
+            "content": "SGVsbG8sIHdvcmxkIQo=",
+            "mode": "0644",
+            "executable": false
+          },
+          {
+            "path": "hello/run.sh",
+            "content": "IyEvYmluL3NoCmVjaG8gaGVsbG8K",
+            "mode": "0755",
+            "executable": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "format-line-missing",
+      "description": "The Format line was lost: readers keep only lines that can be Base64.",
+      "file": "format-line-missing.txt",
+      "passphrase": null,
+      "expect": {
+        "files": [
+          {
+            "path": "hello/hello.txt",
+            "content": "SGVsbG8sIHdvcmxkIQo=",
+            "mode": "0644",
+            "executable": false
+          },
+          {
+            "path": "hello/run.sh",
+            "content": "IyEvYmluL3NoCmVjaG8gaGVsbG8K",
+            "mode": "0755",
+            "executable": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "two-envelopes",
+      "description": "Two envelopes in one text: the first one wins.",
+      "file": "two-envelopes.txt",
+      "passphrase": null,
+      "expect": {
+        "files": [
+          {
+            "path": "hello/hello.txt",
+            "content": "SGVsbG8sIHdvcmxkIQo=",
+            "mode": "0644",
+            "executable": false
+          },
+          {
+            "path": "hello/run.sh",
+            "content": "IyEvYmluL3NoCmVjaG8gaGVsbG8K",
+            "mode": "0755",
+            "executable": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "truncated-no-end",
+      "description": "Cut off in the middle: no END marker.",
+      "file": "truncated-no-end.txt",
+      "passphrase": null,
+      "expect": {
+        "error": "INCOMPLETE"
+      }
+    },
+    {
+      "name": "truncated-with-end",
+      "description": "Body lines lost but the END marker survived: shorter than the declared length.",
+      "file": "truncated-with-end.txt",
+      "passphrase": null,
+      "expect": {
+        "error": "INCOMPLETE"
+      }
+    },
+    {
+      "name": "body-longer-than-length",
+      "description": "More Base64 than the declared length.",
+      "file": "body-longer-than-length.txt",
+      "passphrase": null,
+      "expect": {
+        "error": "CORRUPTED"
+      }
+    },
+    {
+      "name": "corrupted-base64",
+      "description": "A character that isn't Base64, at the declared length.",
+      "file": "corrupted-base64.txt",
+      "passphrase": null,
+      "expect": {
+        "error": "CORRUPTED"
+      }
+    },
+    {
+      "name": "newer-format",
+      "description": "Format 3 is from a newer version: readers ask the user to update.",
+      "file": "newer-format.txt",
+      "passphrase": null,
+      "expect": {
+        "error": "NEWER_VERSION"
+      }
+    },
+    {
+      "name": "not-found",
+      "description": "Ordinary chat text.",
+      "file": "not-found.txt",
+      "passphrase": null,
+      "expect": {
+        "error": "NOT_FOUND"
+      }
+    },
+    {
+      "name": "dash-flood",
+      "description": "64k dashes (a log line or table): marker search must stay linear.",
+      "file": "dash-flood.txt",
+      "passphrase": null,
+      "maxMillis": 2000,
+      "expect": {
+        "error": "NOT_FOUND"
+      }
+    },
+    {
+      "name": "not-a-zip",
+      "description": "A plain envelope whose body isn't a ZIP.",
+      "file": "not-a-zip.txt",
+      "passphrase": null,
+      "expect": {
+        "error": "INVALID_ARCHIVE"
+      }
+    },
+    {
+      "name": "zip-slip-parent",
+      "description": "An entry that escapes the target folder.",
+      "file": "zip-slip-parent.txt",
+      "passphrase": null,
+      "expect": {
+        "error": "INVALID_ARCHIVE"
+      }
+    },
+    {
+      "name": "zip-slip-nested",
+      "description": "An entry that escapes through a nested ..",
+      "file": "zip-slip-nested.txt",
+      "passphrase": null,
+      "expect": {
+        "error": "INVALID_ARCHIVE"
+      }
+    },
+    {
+      "name": "absolute-path",
+      "description": "An absolute Unix path.",
+      "file": "absolute-path.txt",
+      "passphrase": null,
+      "expect": {
+        "error": "INVALID_ARCHIVE"
+      }
+    },
+    {
+      "name": "windows-drive-path",
+      "description": "A Windows drive path.",
+      "file": "windows-drive-path.txt",
+      "passphrase": null,
+      "expect": {
+        "error": "INVALID_ARCHIVE"
+      }
+    },
+    {
+      "name": "paths-normalized",
+      "description": "Backslashes become /, and empty and . segments are dropped.",
+      "file": "paths-normalized.txt",
+      "passphrase": null,
+      "expect": {
+        "files": [
+          {
+            "path": "dir/file.txt",
+            "content": "YQ==",
+            "mode": null,
+            "executable": false
+          },
+          {
+            "path": "dir2/x.txt",
+            "content": "Yg==",
+            "mode": null,
+            "executable": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "duplicate-after-normalization",
+      "description": "Two entries that name the same file.",
+      "file": "duplicate-after-normalization.txt",
+      "passphrase": null,
+      "expect": {
+        "error": "INVALID_ARCHIVE"
+      }
+    },
+    {
+      "name": "directory-entries-ignored",
+      "description": "Directory entries carry no content and are skipped.",
+      "file": "directory-entries-ignored.txt",
+      "passphrase": null,
+      "expect": {
+        "files": [
+          {
+            "path": "d/f.txt",
+            "content": "Zg==",
+            "mode": null,
+            "executable": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "zip-bomb-size",
+      "description": "One entry that inflates past the 200 MB decode limit (about 200 KB compressed).",
+      "file": "zip-bomb-size.txt",
+      "passphrase": null,
+      "expect": {
+        "error": "INVALID_ARCHIVE"
+      }
+    },
+    {
+      "name": "vcs-metadata-blocked",
+      "description": "Decodes, but a paste must never write into VCS metadata such as .git/hooks.",
+      "file": "vcs-metadata-blocked.txt",
+      "passphrase": null,
+      "expect": {
+        "files": [
+          {
+            "path": "p/.git/hooks/pre-commit",
+            "content": "IyEvYmluL3NoCg==",
+            "mode": "0755",
+            "executable": true
+          },
+          {
+            "path": "p/ok.txt",
+            "content": "b2sK",
+            "mode": "0644",
+            "executable": false
+          }
+        ],
+        "blocked": [
+          "p/.git/hooks/pre-commit"
+        ]
+      }
+    },
+    {
+      "name": "case-clash-blocked",
+      "description": "Decodes, but on a case-insensitive target the second of two case-variant names is blocked.",
+      "file": "case-clash-blocked.txt",
+      "passphrase": null,
+      "expect": {
+        "files": [
+          {
+            "path": "p/Readme.md",
+            "content": "YQ==",
+            "mode": null,
+            "executable": false
+          },
+          {
+            "path": "p/README.md",
+            "content": "Yg==",
+            "mode": null,
+            "executable": false
+          }
+        ],
+        "blocked": [
+          "p/README.md"
+        ]
+      }
+    },
+    {
+      "name": "file-folder-clash-blocked",
+      "description": "Decodes, but a file can't sit where another entry needs a folder.",
+      "file": "file-folder-clash-blocked.txt",
+      "passphrase": null,
+      "expect": {
+        "files": [
+          {
+            "path": "p/x",
+            "content": "ZmlsZQ==",
+            "mode": null,
+            "executable": false
+          },
+          {
+            "path": "p/x/y.txt",
+            "content": "aW5uZXI=",
+            "mode": null,
+            "executable": false
+          }
+        ],
+        "blocked": [
+          "p/x"
+        ]
+      }
+    },
+    {
+      "name": "nbsp-before-begin",
+      "description": "A no-break space (U+00A0) between the dashes and BEGIN: \\s means ASCII whitespace only, so no marker.",
+      "file": "nbsp-before-begin.txt",
+      "passphrase": null,
+      "expect": {
+        "error": "NOT_FOUND"
+      }
+    },
+    {
+      "name": "base64-unpadded",
+      "description": "Base64 without its = padding still decodes; the declared length counts the characters actually sent.",
+      "file": "base64-unpadded.txt",
+      "passphrase": null,
+      "expect": {
+        "files": [
+          {
+            "path": "pad.txt",
+            "content": "cHBw",
+            "mode": null,
+            "executable": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "base64-nonzero-trailing-bits",
+      "description": "Unused low bits in the last Base64 character are set (like QR== for QQ==): they are ignored.",
+      "file": "base64-nonzero-trailing-bits.txt",
+      "passphrase": null,
+      "expect": {
+        "files": [
+          {
+            "path": "pad.txt",
+            "content": "cHBw",
+            "mode": null,
+            "executable": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "begin-end-adjacent",
+      "description": "BEGIN's trailing dash run swallows END's leading dashes, so there is no END marker.",
+      "file": "begin-end-adjacent.txt",
+      "passphrase": null,
+      "expect": {
+        "error": "INCOMPLETE"
+      }
+    },
+    {
+      "name": "zip-stored-with-data-descriptor",
+      "description": "A Stored entry can't use a data descriptor (general-purpose bit 3).",
+      "file": "zip-stored-with-data-descriptor.txt",
+      "passphrase": null,
+      "expect": {
+        "error": "INVALID_ARCHIVE"
+      }
+    },
+    {
+      "name": "zip-bad-crc",
+      "description": "The CRC-32 in the data descriptor doesn't match the content.",
+      "file": "zip-bad-crc.txt",
+      "passphrase": null,
+      "expect": {
+        "error": "INVALID_ARCHIVE"
+      }
+    },
+    {
+      "name": "zip-magic-only",
+      "description": "Just the local-header signature: a streaming reader sees no entries. Zero files is not an error.",
+      "file": "zip-magic-only.txt",
+      "passphrase": null,
+      "expect": {
+        "files": []
+      }
+    },
+    {
+      "name": "zip-no-central-directory",
+      "description": "The central directory is cut off and replaced by junk: readers stream local headers and stop there.",
+      "file": "zip-no-central-directory.txt",
+      "passphrase": null,
+      "expect": {
+        "files": [
+          {
+            "path": "kept.txt",
+            "content": "a2VwdA==",
+            "mode": null,
+            "executable": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "summary-sanitized",
+      "description": "The summary line is untrusted: only letters, digits, spaces and ,.- survive, capped at 60 characters.",
+      "file": "summary-sanitized.txt",
+      "passphrase": null,
+      "expect": {
+        "files": [
+          {
+            "path": "hello/hello.txt",
+            "content": "SGVsbG8sIHdvcmxkIQo=",
+            "mode": "0644",
+            "executable": false
+          },
+          {
+            "path": "hello/run.sh",
+            "content": "IyEvYmluL3NoCmVjaG8gaGVsbG8K",
+            "mode": "0755",
+            "executable": true
+          }
+        ],
+        "summary": "b2 filesb  scriptalert1script"
+      }
+    }
+  ]
+}

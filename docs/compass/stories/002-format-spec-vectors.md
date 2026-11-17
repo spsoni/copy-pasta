@@ -2,7 +2,7 @@
 
 > Written in plan mode as the plan; owner approval of the plan = approval of this story.
 
-**Status:** todo
+**Status:** verifying (PR CI)
 **Depends on:** 001
 
 ## Goal
@@ -30,17 +30,27 @@ every later implementation in its own CI. No format change: still `Format: 2`.
 - `intellij/src/test/kotlin/.../format/VectorGenerator.kt`: regenerates vectors only with `-PregenerateVectors`
   (malicious ZIPs via raw `ZipOutputStream`); never in normal runs.
 - `intellij/build.gradle.kts`: the vectors directory as a test system property and declared input.
+- `intellij/src/test/kotlin/.../ide/ConformancePlanTest.kt`: the `blocked` expectations through `PasteWriter.plan`
+  (needs the platform test fixture); `.../format/Vectors.kt`: shared manifest model (Gson from the platform, tests only).
+- `Makefile`: `make vectors` runs the generator (added during the build: the story missed how to run it).
+- `.gitattributes` (new): `spec/vectors/** -text`, so git never rewrites line endings in the vectors (the `crlf` case
+  would silently become LF on a Windows checkout). Added during the build.
 - `intellij/README.md` format section → short summary linking `spec/FORMAT.md`; `AGENTS.md`: the spec and vectors
   are the contract; a format change = spec PR + new vectors. Root `README.md` layout list gains `spec/`.
 - `docs/compass/**`.
 
 ## Acceptance check
-- [ ] `make check` green with ConformanceTest running every vector.
-- [ ] Mutation sanity: break one rule (e.g. drop the zip-slip check) → ConformanceTest fails; revert.
-- [ ] Regenerating vectors gives no diff except intended ones (encrypted cases are frozen: random salt/IV).
-- [ ] Independent review of FORMAT.md against the Kotlin code reports no mismatches (or they're fixed).
+- [x] `make check` green with ConformanceTest running every vector: 101 tests, 0 failures (44 vector cases, the
+  modes table, the plan check).
+- [x] Mutation sanity: dropping the `..` check from `ZipCodec.safePath` failed exactly `zip-slip-parent` and
+  `zip-slip-nested`; restored.
+- [x] Regenerating vectors: sha256 of every file identical before and after `make vectors`.
+- [x] Independent review of FORMAT.md against the Kotlin code: no contradictions. Its clarifications of current
+  behaviour (character classes, body whitespace, Base64 strictness, marker extent, streaming ZIP reading, UTF-8
+  names, Stored/descriptor rules, zero files) are in the spec, with 8 new vectors that pass against today's code.
+  Its security findings change behaviour, so they're story 003.
 - [ ] PR CI green.
 
 ## Notes
-- The envelope's human line still says "plugin for JetBrains IDEs"; it changes in story 007 once a second product
+- The envelope's human line still says "plugin for JetBrains IDEs"; it changes in story 008 once a second product
   ships. Readers rely only on `Copy-Pasta: … . Paste it`.
