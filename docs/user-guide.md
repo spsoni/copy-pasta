@@ -81,16 +81,20 @@ A clipboard icon in the status bar shows when there is Copy-Pasta text to paste:
 | Icon | Meaning |
 |---|---|
 | Blue clipboard that blinks a few times | New Copy-Pasta text is on the clipboard. Hover over it to see what it contains. |
-| Blue clipboard, steady, right after you copy | Your own copy is ready to send. Clicking it does nothing, so you don't paste your files back by accident. |
-| Grey | This text has already been pasted. Click to paste it again. |
+| Blue clipboard, steady, right after you copy | Your own copy is ready to send. |
+| Grey | This text has already been pasted. |
 | Fades out | The clipboard now holds something else. |
 
-Click the icon to paste into the project root, after the usual preview. To paste somewhere else, right-click that
-folder and choose **Copy-Pasta | Paste…**.
+Click the icon for a menu:
+
+- **Paste into Project Root…** and **Paste into Folder…** open the usual preview first.
+- **Clear from Clipboard** removes Copy-Pasta text from the clipboard and from the IDE's clipboard history
+  (**Edit | Paste from History**). Nothing else you copied is touched, and the clipboard goes back to whatever you
+  copied before. This is useful after pasting sensitive files.
 
 The IDE notices text copied in another app when you switch back to its window, so the icon appears at that moment.
-Copy-Pasta never changes or clears your clipboard. To hide the icon, right-click the status bar and untick
-**Copy-Pasta Clipboard**.
+Copy-Pasta changes your clipboard only when you choose **Clear from Clipboard**. To hide the icon, right-click the
+status bar and untick **Copy-Pasta Clipboard**.
 
 ## Encrypt with a passphrase
 

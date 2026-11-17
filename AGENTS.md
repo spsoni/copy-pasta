@@ -91,14 +91,23 @@ src/test/kotlin/   format/* are JUnit 4 unit tests; ide/* are light platform tes
   - **Fallback dialog instead of an error.** It accepts pasted text or a file (which closes the long-message gap with
     **Save as File…**), and validates texts up to 2M characters inline.
   - **Status bar widget:** one pulse on arrival, dimmed after paste, fade out on other content.
-  - **Never clear or change the user's clipboard.** "Pasted" is a fingerprint (length + hash), not a stored copy.
+  - **Never clear or change the user's clipboard on our own.** "Pasted" is a fingerprint (length + hash), not a stored
+    copy. The widget's click menu has an explicit **Clear from Clipboard** (owner's request). It removes only
+    Copy-Pasta entries, from the clipboard and from the IDE's history, via `CopyPasteManagerEx.removeContent`. That
+    method is public and not `@Internal`, unlike `removeIf`.
+  - **The widget opens a menu instead of pasting on click:** Paste into Project Root… / Paste into Folder… / Clear.
+    The folder chooser fixes the "project root only" limitation, and a stray click can't paste the sender's own copy
+    back.
   - **No polling.** ClipboardWatcher refreshes on IDE clipboard changes and on window activation. Menu text and the
     widget read its cached status.
-  - **Clicking the widget pastes into the project root.** `AbstractProjectViewPane.getSelectedDirectories` and
-    friends are deprecated in 2025.3; the preview shows the target.
+  - **The widget can't follow the Project view selection.** `AbstractProjectViewPane.getSelectedDirectories` and
+    friends are deprecated in 2025.3, hence the Project Root / Folder… choice in its menu.
+  - **Icon:** a coloured 16 px icon from the plugin artwork (`resources/icons/clipboardReady*.svg`), shown grey once
+    the text is pasted. The first version used the grey `AllIcons.Actions.MenuPaste`, and its pulse to a lighter grey
+    was invisible (owner's test).
 
-  The sender's own copy is labelled `Copied` (steady icon, click does nothing), so they aren't invited to paste it
-  back. dev01 is headless, so the widget and dialog look need checking on a desktop.
+  The sender's own copy is labelled `Copied` (steady icon, no pulse). dev01 is headless, so the widget and dialog look
+  need checking on a desktop.
 
   An independent review found 7 issues, all fixed:
   1. **ReDoS:** `-{3,}\s*BEGIN` was quadratic on long dash runs (64k dashes took 17 s, on the EDT). This was latent in

@@ -1,12 +1,22 @@
 package info.suryasoni.copy_pasta.ui
 
+import com.intellij.notification.NotificationType
+import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.Separator
+import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.fileChooser.FileChooser
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
+import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.IconLoader
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.CustomStatusBarWidget
 import com.intellij.openapi.wm.StatusBarWidget
 import com.intellij.openapi.wm.StatusBarWidgetFactory
 import com.intellij.ui.ClickListener
+import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.components.JBLabel
 import com.intellij.util.ui.JBUI
 import info.suryasoni.copy_pasta.CopyPastaBundle.message
@@ -16,6 +26,7 @@ import info.suryasoni.copy_pasta.ide.ClipboardStatus
 import info.suryasoni.copy_pasta.ide.ClipboardWatcher
 import info.suryasoni.copy_pasta.ide.Notifier
 import java.awt.Cursor
+import java.awt.Point
 import java.awt.event.MouseEvent
 import javax.swing.JComponent
 import javax.swing.Timer
@@ -31,8 +42,8 @@ class ClipboardStatusWidgetFactory : StatusBarWidgetFactory {
 
 /**
  * A status bar icon that appears while the clipboard holds Copy-Pasta text. It pulses briefly when new text
- * arrives, dims once that text has been pasted, and fades out when the clipboard holds something else. Clicking
- * it pastes into the project root (after the usual preview).
+ * arrives, turns grey once that text has been pasted, and fades out when the clipboard holds something else.
+ * Clicking it opens a menu: paste into the project root, paste into a chosen folder, or clear the text.
  */
 class ClipboardStatusWidget(private val project: Project) : CustomStatusBarWidget {
     // The plugin's own artwork in colour (with a dark-theme variant), so the icon stands out among the status bar's
@@ -51,14 +62,7 @@ class ClipboardStatusWidget(private val project: Project) : CustomStatusBarWidge
     init {
         object : ClickListener() {
             override fun onClick(event: MouseEvent, clickCount: Int): Boolean {
-                // The sender's own copy isn't offered for pasting back; Copy-Pasta | Paste… still does it if wanted.
-                if (ClipboardWatcher.getInstance().status is ClipboardStatus.Copied) return true
-                val target = PasteAction.projectRoot(project)
-                if (target == null) {
-                    Notifier.error(project, message("widget.noProjectRoot"))
-                } else {
-                    PasteFlow.pasteFromClipboard(project, target)
-                }
+                showMenu()
                 return true
             }
         }.installOn(label)
@@ -91,7 +95,7 @@ class ClipboardStatusWidget(private val project: Project) : CustomStatusBarWidge
                 shownFingerprint = status.fingerprint
             }
             is ClipboardStatus.Copied -> {
-                // The sender's own copy: a steady icon confirms it, without inviting them to paste it back here.
+                // The sender's own copy: a steady icon confirms it, without the pulse that announces incoming text.
                 label.icon = readyIcon
                 label.toolTipText = message("widget.tooltip.copied", status.summary ?: message("widget.summary.unknown"))
                 label.isVisible = true
@@ -102,6 +106,59 @@ class ClipboardStatusWidget(private val project: Project) : CustomStatusBarWidge
                 if (animate && label.isVisible) fadeOut() else label.isVisible = false
             }
         }
+    }
+
+    /**
+     * The click menu: paste into the project root or a chosen folder, or clear Copy-Pasta text from the clipboard.
+     * A menu rather than a direct paste, so the sender's own copy can't be pasted back by a stray click.
+     */
+    private fun showMenu() {
+        val status = ClipboardWatcher.getInstance().status as? ClipboardStatus.WithText ?: return
+        val group =
+            DefaultActionGroup(
+                DumbAwareAction.create(message("widget.menu.pasteRoot")) { pasteInto(PasteAction.projectRoot(project)) },
+                DumbAwareAction.create(message("widget.menu.pasteFolder")) { chooseFolderAndPaste() },
+                Separator.getInstance(),
+                DumbAwareAction.create(message("widget.menu.clear")) { clear() },
+            )
+        val popup =
+            JBPopupFactory
+                .getInstance()
+                .createActionGroupPopup(
+                    message("widget.menu.title", status.summary ?: message("widget.summary.unknown")),
+                    group,
+                    SimpleDataContext.getProjectContext(project),
+                    JBPopupFactory.ActionSelectionAid.MNEMONICS,
+                    true,
+                )
+        // Open upwards from the icon, as status bar popups do.
+        popup.show(RelativePoint(label, Point(0, -popup.content.preferredSize.height)))
+    }
+
+    private fun pasteInto(target: VirtualFile?) {
+        if (target == null) {
+            Notifier.error(project, message("widget.noProjectRoot"))
+        } else {
+            PasteFlow.pasteFromClipboard(project, target)
+        }
+    }
+
+    private fun chooseFolderAndPaste() {
+        val descriptor = FileChooserDescriptorFactory.singleDir().withTitle(message("widget.menu.pasteFolder.title"))
+        FileChooser.chooseFile(descriptor, project, label, PasteAction.projectRoot(project)) { folder ->
+            if (folder.isWritable) {
+                pasteInto(
+                    folder,
+                )
+            } else {
+                Notifier.error(project, message("widget.folderNotWritable", folder.presentableUrl))
+            }
+        }
+    }
+
+    private fun clear() {
+        val removed = ClipboardWatcher.getInstance().clear()
+        Notifier.notify(project, message("widget.cleared", removed), NotificationType.INFORMATION)
     }
 
     private fun readyTooltip(summary: String?, encrypted: Boolean): String {

@@ -5,6 +5,7 @@ import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import info.suryasoni.copy_pasta.format.Envelope
+import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
 
 class ClipboardWatcherTest : BasePlatformTestCase() {
@@ -41,5 +42,21 @@ class ClipboardWatcherTest : BasePlatformTestCase() {
 
         assertEquals(listOf(ready, watcher.status), listOf(seen.first { it is ClipboardStatus.Ready }, seen.last()))
         assertTrue(seen.any { it is ClipboardStatus.Pasted })
+    }
+
+    fun `test clear removes copy-pasta text from the clipboard and its history, nothing else`() {
+        val watcher = ClipboardWatcher.getInstance()
+        copy("keep me")
+        copy(text)
+        copy(Envelope.encode(ByteArray(8), encrypted = true, summary = "1 file, 8 B"))
+        assertTrue(watcher.status is ClipboardStatus.Ready)
+
+        assertTrue(watcher.clear() >= 2)
+        PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
+
+        val history = CopyPasteManager.getInstance().allContents.mapNotNull { it.getTransferData(DataFlavor.stringFlavor) as? String }
+        assertTrue(history.none { Envelope.looksLikeEnvelope(it) })
+        assertTrue("keep me" in history)
+        assertEquals(ClipboardStatus.None, watcher.status)
     }
 }
