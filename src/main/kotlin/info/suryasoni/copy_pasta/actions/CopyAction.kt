@@ -48,13 +48,15 @@ open class CopyAction(private val encrypted: Boolean = false) : DumbAwareAction(
                 text = Envelope.encode(payload, encrypted, summary)
             }
 
+            // getContents() is nullable but setContents() isn't, so `contents` is a val in Kotlin: keep the setter call.
+            @Suppress("UsePropertyAccessSyntax")
             override fun onSuccess() {
                 val copied = text
                 if (copied == null) {
                     Notifier.notify(project, message("copy.nothing"), NotificationType.WARNING)
                     return
                 }
-                CopyPasteManager.getInstance().contents = StringSelection(copied)
+                CopyPasteManager.getInstance().setContents(StringSelection(copied))
                 val lines =
                     mutableListOf(
                         message("copy.done", collected.files.size, StringUtil.formatFileSize(collected.totalBytes), copied.length),
