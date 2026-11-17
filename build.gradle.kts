@@ -9,14 +9,22 @@ plugins {
     alias(libs.plugins.changelog) // Gradle Changelog Plugin
     alias(libs.plugins.qodana) // Gradle Qodana Plugin
     alias(libs.plugins.kover) // Gradle Kover Plugin
+    alias(libs.plugins.ktlint) // ktlint (make lint / make format)
 }
 
 group = providers.gradleProperty("pluginGroup").get()
 version = providers.gradleProperty("pluginVersion").get()
 
-// Set the JVM language level used to build the project.
+// IntelliJ 2024.3+ runs on Java 21 and bundles Kotlin stdlib 2.0.21. The stdlib is NOT bundled into the
+// plugin (kotlin.stdlib.default.dependency=false), so cap the Kotlin API level at the oldest supported IDE's
+// stdlib; otherwise a newer compiler can emit calls that fail at runtime with NoSuchMethodError.
+// (The language version stays at the compiler default: syntax features don't need runtime support.)
 kotlin {
     jvmToolchain(21)
+    compilerOptions {
+        apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0
+        freeCompilerArgs.add("-Xsuppress-version-warnings") // API 2.0 is deprecated in Kotlin 2.4 but required by 2024.3
+    }
 }
 
 // Configure project's dependencies
@@ -82,7 +90,7 @@ intellijPlatform {
 
         ideaVersion {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
-            untilBuild = providers.gradleProperty("pluginUntilBuild")
+            untilBuild = provider { null } // open-ended: recommended for 243+, the verifier checks new IDEs
         }
     }
 
@@ -97,7 +105,8 @@ intellijPlatform {
         // The pluginVersion is based on the SemVer (https://semver.org) and supports pre-release labels, like 2.1.7-alpha.3
         // Specify pre-release label to publish the plugin in a custom Release Channel automatically. Read more:
         // https://plugins.jetbrains.com/docs/intellij/deployment.html#specifying-a-release-channel
-        channels = providers.gradleProperty("pluginVersion").map { listOf(it.substringAfter('-', "").substringBefore('.').ifEmpty { "default" }) }
+        channels =
+            providers.gradleProperty("pluginVersion").map { listOf(it.substringAfter('-', "").substringBefore('.').ifEmpty { "default" }) }
     }
 
     pluginVerification {
@@ -132,25 +141,9 @@ tasks {
     publishPlugin {
         dependsOn(patchChangelog)
     }
-}
 
-intellijPlatformTesting {
-    runIde {
-        register("runIdeForUiTests") {
-            task {
-                jvmArgumentProviders += CommandLineArgumentProvider {
-                    listOf(
-                        "-Drobot-server.port=8082",
-                        "-Dide.mac.message.dialogs.as.sheets=false",
-                        "-Djb.privacy.policy.text=<!--999.999-->",
-                        "-Djb.consents.confirmation.enabled=false",
-                    )
-                }
-            }
-
-            plugins {
-                robotServerPlugin()
-            }
-        }
+    // The IntelliJ test framework otherwise forks the test JVM with -Xmx2048m (see gradle.properties memory notes).
+    withType<Test>().configureEach {
+        maxHeapSize = "1g"
     }
 }

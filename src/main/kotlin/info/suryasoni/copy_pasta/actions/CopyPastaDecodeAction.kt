@@ -1,107 +1,101 @@
 package info.suryasoni.copy_pasta.actions
 
-import com.intellij.notification.Notification
-import com.intellij.notification.NotificationType
-import com.intellij.notification.Notifications
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
-import com.intellij.openapi.vfs.LocalFileSystem
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.components.service
+import com.intellij.openapi.ide.CopyPasteManager
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.Task
+import com.intellij.openapi.vfs.VirtualFile
 import info.suryasoni.copy_pasta.settings.CopyPastaSettingsState
-import java.awt.Toolkit
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
-import java.io.ByteArrayInputStream
 import java.io.File
-import java.util.Base64
-import java.util.zip.GZIPInputStream
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
-
+import javax.crypto.AEADBadTagException
 
 class CopyPastaDecodeAction : AnAction() {
 
+    override fun getActionUpdateThread() = ActionUpdateThread.BGT
+
+    override fun update(event: AnActionEvent) {
+        event.presentation.isEnabledAndVisible = targetDirectory(event) != null
+    }
+
     override fun actionPerformed(event: AnActionEvent) {
-        val projectDir = event.getData(CommonDataKeys.VIRTUAL_FILE) ?: return
-        if (!projectDir.isDirectory) {
+        val project = event.project
+        val targetDir = targetDirectory(event) ?: return
+        val clipboardText = CopyPasteManager.getInstance().getContents<String>(DataFlavor.stringFlavor)
+        if (clipboardText.isNullOrBlank()) {
+            CopyPastaNotifier.error(project, "Nothing to paste", "The clipboard is empty.")
             return
         }
 
-        val settings = service<CopyPastaSettingsState>().state
-        val encryptionKey = CopyPastaUtils.hashKey(settings.encryptionKey)
-        val enableDecryption = settings.enableDecryption
+        val settings = service<CopyPastaSettingsState>().state.copy()
+        val destination = File(targetDir.path)
 
-        try {
-            // Get the Base64 string from clipboard
-            val clipboard = Toolkit.getDefaultToolkit().systemClipboard
-            val clipboardData = clipboard.getData(DataFlavor.stringFlavor) ?: return
-            val base64EncodedData = clipboardData as? String ?: return
+        object : Task.Backgroundable(project, "Copy-Pasta: extracting", false) {
+            private var fileCount = 0
 
-            // Decode the Base64 string
-            val decodedBytes = try {
-                Base64.getDecoder().decode(base64EncodedData.replace("\n", ""))
-            } catch (e: IllegalArgumentException) {
-                notify("Invalid Data", "The clipboard does not contain valid base64 encoded data.", NotificationType.ERROR)
-                return
-            }
-
-            // Check if the data is encrypted
-            if (isEncrypted(decodedBytes)) {
-                if (!enableDecryption) {
-                    notify("Decryption Disabled", "The data is encrypted, but decryption is disabled in settings.", NotificationType.ERROR)
-                    return
+            override fun run(indicator: ProgressIndicator) {
+                val decoded = try {
+                    CopyPastaUtils.fromBase64(clipboardText)
+                } catch (_: IllegalArgumentException) {
+                    throw UserFacingException("Invalid data", "The clipboard does not contain valid Base64 data.")
                 }
 
-                try {
-                    // Attempt to decrypt the data
-                    val finalBytes = CopyPastaUtils.decrypt(decodedBytes, encryptionKey)
-                    processDecryptedData(finalBytes, projectDir)
-                } catch (e: Exception) {
-                    notify("Decryption Failed", "The data is encrypted, but the encryption key is incorrect.", NotificationType.ERROR)
-                }
-            } else {
-                // Process the data if it's not encrypted
-                processDecryptedData(decodedBytes, projectDir)
-            }
-
-            // Clear the clipboard
-            val emptyStringSelection = StringSelection("")
-            clipboard.setContents(emptyStringSelection, null)
-
-            // Refresh the project directory
-            LocalFileSystem.getInstance().refreshAndFindFileByIoFile(File(projectDir.path))?.refresh(true, true)
-
-        } catch (e: Exception) {
-            notify("Error", "Failed to decode data: ${e.message}", NotificationType.ERROR)
-        }
-    }
-
-    private fun isEncrypted(data: ByteArray): Boolean {
-        // Simple heuristic to check if data is encrypted
-        return data.size > 0 && data.any { byte -> byte < 32 && byte != '\n'.code.toByte() && byte != '\r'.code.toByte() }
-    }
-
-    private fun processDecryptedData(data: ByteArray, projectDir: VirtualFile) {
-        val destinationDir = File(projectDir.path)
-        ByteArrayInputStream(data).use { bais ->
-            if (CopyPastaUtils.isTarGzFile(data)) {
-                GZIPInputStream(bais).use { gzis ->
-                    TarArchiveInputStream(gzis).use { tais ->
-                        CopyPastaUtils.untarFiles(tais, destinationDir)
+                val tarGz = when {
+                    CopyPastaUtils.isEncrypted(decoded) -> {
+                        if (!settings.enableDecryption) {
+                            throw UserFacingException(
+                                "Decryption disabled",
+                                "The data is encrypted, but decryption is disabled in settings.",
+                            )
+                        }
+                        try {
+                            CopyPastaUtils.decrypt(decoded, settings.encryptionKey)
+                        } catch (_: AEADBadTagException) {
+                            throw UserFacingException("Decryption failed", "The data is encrypted with a different key.")
+                        }
                     }
+                    CopyPastaUtils.isGzip(decoded) -> decoded
+                    else -> throw UserFacingException(
+                        "Invalid format",
+                        "The clipboard does not contain a Copy-Pasta archive (it may come from an older, incompatible version).",
+                    )
                 }
-            } else {
-                notify("Invalid Format", "The decoded data is not in the expected tar.gz format.", NotificationType.ERROR)
-                return
+
+                val patterns = CopyPastaUtils.parseExcludePatterns(settings.excludePatterns)
+                fileCount = CopyPastaUtils.extractTarGz(tarGz, destination, patterns)
             }
-        }
 
-        notify("Extraction Complete", "The files have been successfully extracted and the clipboard cleared.", NotificationType.INFORMATION)
+            override fun onSuccess() {
+                targetDir.refresh(true, true)
+                CopyPasteManager.getInstance().setContents(StringSelection(""))
+                CopyPastaNotifier.info(
+                    project,
+                    "Extraction complete",
+                    "$fileCount file(s) extracted to ${targetDir.name}; the clipboard has been cleared.",
+                )
+            }
+
+            override fun onThrowable(error: Throwable) {
+                if (error is UserFacingException) {
+                    CopyPastaNotifier.error(project, error.title, error.message)
+                } else {
+                    CopyPastaNotifier.error(project, "Copy-Pasta error", "Failed to decode data: ${error.message}")
+                }
+            }
+        }.queue()
     }
 
-    private fun notify(title: String, content: String, type: NotificationType) {
-        val notification = Notification("Copy-Pasta", title, content, type)
-        Notifications.Bus.notify(notification)
+    /** The selected directory, or the parent of a selected file. */
+    private fun targetDirectory(event: AnActionEvent): VirtualFile? {
+        val file = event.getData(CommonDataKeys.VIRTUAL_FILE) ?: return null
+        if (!file.isInLocalFileSystem) return null
+        return if (file.isDirectory) file else file.parent
     }
+
+    private class UserFacingException(val title: String, override val message: String) : Exception(message)
 }
