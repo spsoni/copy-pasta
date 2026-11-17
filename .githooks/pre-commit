@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Self-validation before every commit: ktlint + unit tests when Kotlin/Gradle files are staged.
+# Enable with:  make hooks  (sets core.hooksPath=.githooks).
+# Bypass in an emergency with:  git commit --no-verify
+set -uo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+staged="$(git diff --cached --name-only --diff-filter=ACM)"
+
+if ! echo "$staged" | grep -qE '\.(kt|kts|toml|properties)$|^src/main/resources/'; then
+  exit 0
+fi
+
+cd "$ROOT" || exit 1
+echo "▶ ktlint"
+if ! ./gradlew --quiet --console=plain ktlintCheck; then
+  echo "  → run 'make format' to fix formatting" >&2
+  exit 1
+fi
+echo "▶ unit tests"
+if ! ./gradlew --quiet --console=plain test; then
+  exit 1
+fi

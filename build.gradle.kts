@@ -9,14 +9,21 @@ plugins {
     alias(libs.plugins.changelog) // Gradle Changelog Plugin
     alias(libs.plugins.qodana) // Gradle Qodana Plugin
     alias(libs.plugins.kover) // Gradle Kover Plugin
+    alias(libs.plugins.ktlint) // ktlint (make lint / make format)
 }
 
 group = providers.gradleProperty("pluginGroup").get()
 version = providers.gradleProperty("pluginVersion").get()
 
-// Set the JVM language level used to build the project.
+// Oldest supported IDE is 2025.3: it runs on Java 21 (2026.2+ run Java 25, which runs Java 21 bytecode) and bundles
+// Kotlin stdlib 2.2.20. The stdlib is NOT bundled into the plugin (kotlin.stdlib.default.dependency=false), so the
+// Kotlin API level is capped at 2.2; otherwise the compiler could emit calls that fail at runtime with
+// NoSuchMethodError. The language version stays at the compiler default (syntax needs no runtime support).
 kotlin {
     jvmToolchain(21)
+    compilerOptions {
+        apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_2
+    }
 }
 
 // Configure project's dependencies
@@ -36,20 +43,19 @@ dependencies {
 
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
-        create(providers.gradleProperty("platformType"), providers.gradleProperty("platformVersion"))
-
-        // Plugin Dependencies. Uses `platformBundledPlugins` property from the gradle.properties file for bundled IntelliJ Platform plugins.
-        bundledPlugins(providers.gradleProperty("platformBundledPlugins").map { it.split(',') })
-
-        // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file for plugin from JetBrains Marketplace.
-        plugins(providers.gradleProperty("platformPlugins").map { it.split(',') })
-
+        // Compile against the LOWEST supported platform so newer-only APIs fail at compile time.
+        // 2025.3+ ships as the unified IntelliJ IDEA distribution. The plugin depends only on the platform module,
+        // so it installs in every JetBrains IDE.
+        intellijIdea(providers.gradleProperty("platformVersion"))
         testFramework(TestFrameworkType.Platform)
     }
 }
 
 // Configure IntelliJ Platform Gradle Plugin - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-extension.html
 intellijPlatform {
+    // No Settings page, so there is nothing to index; skipping it avoids booting a headless IDE on every build.
+    buildSearchableOptions = false
+
     pluginConfiguration {
         name = providers.gradleProperty("pluginName")
         version = providers.gradleProperty("pluginVersion")
@@ -82,7 +88,7 @@ intellijPlatform {
 
         ideaVersion {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
-            untilBuild = providers.gradleProperty("pluginUntilBuild")
+            untilBuild = provider { null } // open-ended (JetBrains guidance for 243+); CI runs the verifier on new IDEs
         }
     }
 
@@ -97,7 +103,8 @@ intellijPlatform {
         // The pluginVersion is based on the SemVer (https://semver.org) and supports pre-release labels, like 2.1.7-alpha.3
         // Specify pre-release label to publish the plugin in a custom Release Channel automatically. Read more:
         // https://plugins.jetbrains.com/docs/intellij/deployment.html#specifying-a-release-channel
-        channels = providers.gradleProperty("pluginVersion").map { listOf(it.substringAfter('-', "").substringBefore('.').ifEmpty { "default" }) }
+        channels =
+            providers.gradleProperty("pluginVersion").map { listOf(it.substringAfter('-', "").substringBefore('.').ifEmpty { "default" }) }
     }
 
     pluginVerification {
@@ -129,28 +136,13 @@ tasks {
         gradleVersion = providers.gradleProperty("gradleVersion").get()
     }
 
-    publishPlugin {
-        dependsOn(patchChangelog)
+    // Gradle 9 rejects running both in one build unless the dependency is declared (not declared by the plugin as of 2.19).
+    verifyPluginSignature {
+        dependsOn(signPlugin)
     }
-}
 
-intellijPlatformTesting {
-    runIde {
-        register("runIdeForUiTests") {
-            task {
-                jvmArgumentProviders += CommandLineArgumentProvider {
-                    listOf(
-                        "-Drobot-server.port=8082",
-                        "-Dide.mac.message.dialogs.as.sheets=false",
-                        "-Djb.privacy.policy.text=<!--999.999-->",
-                        "-Djb.consents.confirmation.enabled=false",
-                    )
-                }
-            }
-
-            plugins {
-                robotServerPlugin()
-            }
-        }
+    // The IntelliJ test framework otherwise forks the test JVM with -Xmx2048m (see gradle.properties memory notes).
+    withType<Test>().configureEach {
+        maxHeapSize = "1g"
     }
 }

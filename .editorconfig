@@ -1,0 +1,28 @@
+# https://editorconfig.org — also read by ktlint
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{kt,kts}]
+max_line_length = 140
+ktlint_code_style = intellij_idea
+# The package name `info.suryasoni.copy_pasta` is published (plugin id / settings storage); keep it.
+ktlint_standard_package-name = disabled
+# Backticked JUnit test names are idiomatic.
+ktlint_standard_function-naming = disabled
+
+[*.{json,yml,yaml,xml}]
+indent_size = 2
+
+[*.md]
+indent_size = 2
+trim_trailing_whitespace = false
+
+[{gradlew,gradlew.bat}]
+ktlint = disabled
