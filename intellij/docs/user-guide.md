@@ -54,7 +54,7 @@ large selections don't freeze the IDE.
 If the clipboard holds something else when you choose **Paste…**, the **Paste Copy-Pasta Text** dialog opens instead.
 Paste the message into it, or choose **Open File…** to load a `.txt` attachment. A message that is cut off or damaged
 is reported in the dialog, so you can fix it before going on. If the clipboard text turns out to be cut off, the error
-notification offers **Paste Text or Open File…**, which opens the same dialog.
+notification offers **Paste text or open file…**, which opens the same dialog.
 
 ![The Paste Files preview listing each file as new, with a checkbox](images/paste-preview.png)
 

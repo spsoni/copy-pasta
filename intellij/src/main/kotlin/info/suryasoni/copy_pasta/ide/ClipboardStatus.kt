@@ -31,8 +31,7 @@ sealed interface ClipboardStatus {
         fun of(text: String?, pastedFingerprint: Long?, copiedFingerprint: Long? = null): ClipboardStatus {
             if (text.isNullOrEmpty()) return None
             val peek = Envelope.peek(text) ?: return None
-            val fingerprint = fingerprint(text)
-            return when (fingerprint) {
+            return when (val fingerprint = fingerprint(text)) {
                 pastedFingerprint -> Pasted(peek.summary, peek.encrypted, fingerprint)
                 copiedFingerprint -> Copied(peek.summary, peek.encrypted, fingerprint)
                 else -> Ready(peek.summary, peek.encrypted, fingerprint)
