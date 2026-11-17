@@ -1,0 +1,6 @@
+-----BEGIN COPY-PASTA ENCRYPTED-----
+Copy-Pasta: 1 file, 1 KB. Paste it with the Copy-Pasta plugin for JetBrains IDEs: https://github.com/spsoni/copy-pasta
+Format: 2; length: 92
+Q1B2MgBMS0EAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAA=
+-----END COPY-PASTA ENCRYPTED-----

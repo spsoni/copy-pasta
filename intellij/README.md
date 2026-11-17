@@ -81,11 +81,12 @@ UEsDBBQACAgIA...                      (Base64, 76 characters per line)
 -----END COPY-PASTA-----
 ```
 
-- The body is Base64 of a ZIP. File paths are relative to the selection. Permissions are stored in a private ZIP extra field (`0x4350`): byte 0 is the executable flag (all that 2.0 wrote), and bytes 1–2 hold the nine `rwxrwxrwx` bits (2.1 and later). Owners and timestamps aren't stored.
-- `BEGIN COPY-PASTA ENCRYPTED` means the body is `CPv2` | PBKDF2 iteration count (int32) | 16-byte salt | 12-byte IV |
-  AES-256-GCM ciphertext and tag. The key comes from the passphrase via PBKDF2-HMAC-SHA256 (600,000 iterations by default).
+- The body is Base64 of a standard ZIP, so `base64 -d | unzip -l -` lists it without the plugin. File permissions travel in a small private ZIP extra field. Owners and timestamps aren't stored.
+- `BEGIN COPY-PASTA ENCRYPTED` means the ZIP is encrypted with AES-256-GCM, using a key derived from your passphrase with PBKDF2-HMAC-SHA256 (600,000 iterations).
 - `length` lets the plugin detect a message cut off by a chat app.
 - Copy-Pasta 1.x text (raw Base64 tar.gz) can't be pasted with 2.x.
+
+The full byte-level format, shared by every Copy-Pasta product, is in [spec/FORMAT.md](../spec/FORMAT.md).
 
 Size limits: 10 MB per file and 50 MB per copy. A notification warns when the text is longer than chat apps usually allow (about 35k characters).
 

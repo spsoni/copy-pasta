@@ -6,7 +6,7 @@
 GRADLE := intellij/gradlew -p intellij --console=plain
 
 .DEFAULT_GOAL := help
-.PHONY: help setup-mac hooks check test lint format build run verify clean release
+.PHONY: help setup-mac hooks check test lint format vectors build run verify clean release
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -41,6 +41,9 @@ lint: ## ktlint check
 
 format: ## Auto-format Kotlin sources with ktlint
 	$(GRADLE) ktlintFormat
+
+vectors: ## Add new spec conformance vectors to spec/vectors/ (FORCE=1 rewrites all, see VectorGenerator.kt)
+	$(GRADLE) test --tests '*VectorGenerator*' -PregenerateVectors=$(if $(FORCE),force,true)
 
 build: ## Build the plugin ZIP into intellij/build/distributions/
 	$(GRADLE) buildPlugin

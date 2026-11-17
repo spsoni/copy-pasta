@@ -1,0 +1,2 @@
+# The conformance vectors are byte-exact test inputs (one of them is deliberately CRLF): never convert line endings.
+spec/vectors/** -text

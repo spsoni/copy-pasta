@@ -31,6 +31,9 @@ tags; other products will use `vscode-v…` / `desktop-v…`.
 - [x] Release workflow's tag/version/changelog step run locally from `intellij/`: `version=2.1.0`, notes extracted.
   `actionlint` and `shellcheck .githooks/pre-commit` clean.
 - [ ] PR CI green (Build, Test, Inspect code, Verify plugin) and the verifier still "Compatible" with no deprecated usages.
+  - Build, Test and Verify plugin passed on 6ac123b.
+  - Inspect code (Qodana) failed: in PR mode it also analyses the base commit (`d03671a`, before the move), which has no
+    `intellij/`. That's expected only for the PR that crosses the move. Confirm Qodana passes on `main` after merging.
 
 ## Notes
 - `main` has no branch protection, so path-filtered checks can't block merges. Revisit if protection is added.

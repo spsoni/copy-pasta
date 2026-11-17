@@ -1,0 +1,83 @@
+{
+  "spec": "../FORMAT.md#permissions",
+  "rules": [
+    {
+      "sender": "0644",
+      "current": "0644",
+      "safe": "0644",
+      "applied": "0644"
+    },
+    {
+      "sender": "0755",
+      "current": "0644",
+      "safe": "0755",
+      "applied": "0755"
+    },
+    {
+      "sender": "0600",
+      "current": "0644",
+      "safe": "0600",
+      "applied": "0600"
+    },
+    {
+      "sender": "0777",
+      "current": "0644",
+      "safe": "0755",
+      "applied": "0755"
+    },
+    {
+      "sender": "0777",
+      "current": "0664",
+      "safe": "0755",
+      "applied": "0755"
+    },
+    {
+      "sender": "0664",
+      "current": "0644",
+      "safe": "0644",
+      "applied": "0644"
+    },
+    {
+      "sender": "0444",
+      "current": "0644",
+      "safe": "0644",
+      "applied": "0644"
+    },
+    {
+      "sender": "0000",
+      "current": "0644",
+      "safe": "0600",
+      "applied": "0600"
+    },
+    {
+      "sender": "4777",
+      "current": "0644",
+      "safe": "0755",
+      "applied": "0755"
+    },
+    {
+      "sender": "0644",
+      "current": "0600",
+      "safe": "0644",
+      "applied": "0600"
+    },
+    {
+      "sender": "0755",
+      "current": "0600",
+      "safe": "0755",
+      "applied": "0700"
+    },
+    {
+      "sender": "0644",
+      "current": "0640",
+      "safe": "0644",
+      "applied": "0640"
+    },
+    {
+      "sender": "0750",
+      "current": "0644",
+      "safe": "0750",
+      "applied": "0750"
+    }
+  ]
+}

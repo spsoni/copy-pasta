@@ -34,6 +34,7 @@ learns something.
 ```
 README.md, LICENSE, SECURITY.md, AGENTS.md, Makefile, Brewfile, .githooks/, .github/   repository-wide
 docs/compass/   Compass status board and stories (plans with a scope list and acceptance evidence).
+spec/           FORMAT.md (the clipboard format), FEATURES.md (parity table), vectors/ (conformance cases).
 intellij/       the JetBrains plugin: build.gradle.kts, gradle/, gradlew, qodana.yml, CHANGELOG.md, README.md, and:
 src/main/kotlin/info/suryasoni/copy_pasta/        (paths below are relative to intellij/)
   format/   IDE-free and unit-tested. Envelope (text wrapper), ZipCodec (JDK zip, path safety, size caps), Crypto.
@@ -53,6 +54,9 @@ src/test/kotlin/   format/* are JUnit 4 unit tests; ide/* are light platform tes
 
 - **Store listing = `intellij/README.md` `<!-- Plugin description -->` block.** **Change notes = the
   `intellij/CHANGELOG.md` entry for `pluginVersion`**, or `[Unreleased]` if there is none. Edit those files, not plugin.xml. Vendor email still to be added.
+- **`spec/FORMAT.md` and `spec/vectors/` are the contract** between all products. Every implementation runs every
+  vector in its CI (`ConformanceTest`, `ConformancePlanTest` here). A format change means a spec change plus new
+  vectors (`VectorGenerator.kt`, `make vectors`) in the same PR. Update `spec/FEATURES.md` with any feature change.
 - **The envelope is a compatibility contract** between installs: the BEGIN/END markers, `Format: 2; length: N`, a ZIP
   body, the permissions extra field `0x4350`, and the encrypted `CPv2` layout (magic | int32 PBKDF2 iterations | salt |
   iv | GCM). The `0x4350` data layout:

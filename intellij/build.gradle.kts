@@ -154,5 +154,16 @@ tasks {
     // The IntelliJ test framework otherwise forks the test JVM with -Xmx2048m (see gradle.properties memory notes).
     withType<Test>().configureEach {
         maxHeapSize = "1g"
+
+        // The shared conformance vectors (spec/vectors, see spec/FORMAT.md). Declared as an input so a changed vector
+        // re-runs the tests instead of reusing a cached result.
+        val vectors = layout.projectDirectory.dir("../spec/vectors")
+        inputs.dir(vectors).withPathSensitivity(PathSensitivity.RELATIVE).withPropertyName("specVectors")
+        systemProperty("copyPasta.vectors", vectors.asFile.absolutePath)
+        // `make vectors` (-PregenerateVectors=true, or =force to rewrite every file) runs VectorGenerator.
+        providers.gradleProperty("regenerateVectors").orNull?.let {
+            systemProperty("copyPasta.regenerateVectors", it)
+            outputs.upToDateWhen { false }
+        }
     }
 }
