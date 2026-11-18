@@ -134,6 +134,10 @@ or the workflow changes. It no longer drafts releases. JetBrains plugin tags sta
   - **`node --test` globs need Node 21+:** CI's Node 20 found nothing to run. Let the shell expand the pattern.
   - **Packaging tools carry their own advisories** (vsce's globbing libraries): they live in `vscode/tools/` with
     their own lockfile, out of the extension's dependency tree and audit.
+  - **Marketplace extension names and display names are unique across all publishers.** `copy-pasta` and
+    "Copy-Pasta" were taken (`Equilib.copy-pasta`), and each was only reported at publish time: 0.1.0 and 0.1.1 are
+    GitHub-only releases. The extension is `spsoni.copy-pasta-files`, "Copy-Pasta Files". Trusted publishing
+    (OIDC) worked first time. Search the Marketplace (`vsce search`) before choosing names for a new product.
   - **Building an invisible character from a `\u` escape** can turn into the literal character in a generated
     source file. Write `String.fromCodePoint(0x…)` / `Char(0x…)` instead.
 
