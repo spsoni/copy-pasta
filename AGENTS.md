@@ -93,8 +93,12 @@ src/test/kotlin/   format/* are JUnit 4 unit tests; ide/* are light platform tes
 `vscode/CHANGELOG.md`, commits, tags `vscode-vX.Y.Z`), then `git push origin HEAD vscode-vX.Y.Z`.
 `release-vscode.yml` checks tag/version/changelog, runs the tests and the integration tests inside VS Code, packages
 the `.vsix`, creates a GitHub release (not marked latest, so the plugin's release stays "latest"), and publishes to
-the VS Code Marketplace (`VSCE_PAT`) and Open VSX (`OVSX_PAT`) when those secrets exist. Unlike JetBrains, the first
-upload can be automated. `vscode.yml` runs integration tests on VS Code 1.90.0 (the floor) and stable under
+the VS Code Marketplace with **trusted publishing** (OIDC: no stored token) and to Open VSX (`OVSX_PAT`) when that
+secret exists. The Marketplace policy for publisher `spsoni` names repository `copy-pasta`, workflow
+`release-vscode.yml` and environment `vscode-marketplace`; renaming the workflow file or the environment breaks
+publishing until the policy is updated. The environment accepts only `vscode-v*` tags, and only its job (which runs no
+project code, just the pinned vsce on the built `.vsix`) gets `id-token: write`. Unlike JetBrains, the first upload can
+be automated. `vscode.yml` runs integration tests on VS Code 1.90.0 (the floor) and stable under
 `xvfb-run`; dev01 has no display, so they run only in CI.
 
 **JetBrains plugin:**

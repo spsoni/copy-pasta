@@ -3,7 +3,7 @@
 > Written in plan mode as the plan; owner approval of the plan = approval of this story. Details filled in from the
 > approved outline once 004's core existed.
 
-**Status:** done; first release waits on the Marketplace publisher (`VSCE_PAT`)
+**Status:** done; first release waits on the Marketplace trusted-publishing policy
 **Depends on:** 004
 
 ## Goal
@@ -32,7 +32,8 @@ either product pastes in the other. Same security posture: no network, no teleme
   fixture folder, pastes into another folder through the exported API, and checks files, modes, blocked entries and
   undo.
 - `.github/workflows/vscode.yml` (integration job), `.github/workflows/release-vscode.yml` (tag = version check,
-  check, `vsce package`, GitHub release with the `.vsix`, publish with `VSCE_PAT` / `OVSX_PAT` when set).
+  check, `vsce package`, GitHub release with the `.vsix`, publish to the Marketplace with trusted publishing (OIDC)
+  and to Open VSX with `OVSX_PAT` when set).
 - Host-neutral summary line in both writers: `Envelope.kt`, `envelope.ts` (+ their tests if they assert the wording).
 - Root `README.md` products table, `spec/FEATURES.md`, `SECURITY.md` (VS Code row), `AGENTS.md`, `Makefile`,
   `docs/compass/**`.
@@ -59,7 +60,8 @@ either product pastes in the other. Same security posture: no network, no teleme
     and roots without a shared folder use their own names.
   - **CI tooling on Node 22.**
   - **Release secrets:** given only to their publish step; no persisted credentials; tools pinned by
-    `vscode/tools`' lockfile; idempotent re-runs.
+    `vscode/tools`' lockfile; idempotent re-runs. Later (owner's setup): the Marketplace uses trusted publishing
+    (OIDC) instead of a PAT, from a separate job in environment `vscode-marketplace` (only `vscode-v*` tags).
   - **Smaller fixes:**
     - re-plan before writing (abort if the folder changed);
     - no `chmod` through links;
