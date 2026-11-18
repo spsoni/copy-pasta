@@ -4,6 +4,10 @@ All notable changes to the Copy-Pasta VS Code extension. Releases are tagged `vs
 
 ## [Unreleased]
 
+### Changed
+
+- Marketplace display name **Copy-Pasta Files**: "Copy-Pasta" was taken. Commands and menus still say Copy-Pasta.
+
 ## [0.1.1] - 2026-11-18
 
 ### Changed
