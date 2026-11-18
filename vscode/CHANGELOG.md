@@ -4,6 +4,8 @@ All notable changes to the Copy-Pasta VS Code extension. Releases are tagged `vs
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-18
+
 ### Changed
 
 - The extension ID is `spsoni.copy-pasta-files`: the name `copy-pasta` was already taken on the VS Code Marketplace.
