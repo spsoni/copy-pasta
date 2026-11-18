@@ -4,6 +4,8 @@ All notable changes to the Copy-Pasta VS Code extension. Releases are tagged `vs
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-18
+
 ### Added
 
 - First release: Copy, Copy Encrypted…, Paste… with a preview, Paste from File…, Save as File…, a clipboard
