@@ -6,7 +6,7 @@
 - 001–003: monorepo, format spec + vectors, paste hardening → JetBrains 2.1.1 (2026-11-17, see stories/).
 
 ## Now
-- 004 vscode-core done; 005 vscode-extension verifying on PR #12 (integration tests in CI, owner desktop check)
+- 004–005 VS Code extension done on PR #12 (CI green, owner desktop check passed); release waits on `VSCE_PAT`
 
 ## Next
 1. First VS Code release (vscode-v0.1.0) once the owner has the publisher accounts; JetBrains 2.1.2 (wording, ZIP caps)
