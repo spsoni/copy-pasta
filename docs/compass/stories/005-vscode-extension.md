@@ -7,7 +7,7 @@
 **Depends on:** 004
 
 ## Goal
-A VS Code extension (`spsoni.copy-pasta`) with the JetBrains plugin's core features on top of the 004 format core,
+A VS Code extension (`spsoni.copy-pasta-files`; the name `copy-pasta` was taken on the Marketplace) with the JetBrains plugin's core features on top of the 004 format core,
 packaged as a `.vsix` and released by tag `vscode-vX.Y.Z` to the VS Code Marketplace and Open VSX. Text copied in
 either product pastes in the other. Same security posture: no network, no telemetry, no runtime dependencies.
 

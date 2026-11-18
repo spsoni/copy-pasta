@@ -128,7 +128,7 @@ const tests: [string, (api: Api) => Promise<void>][] = [
 ];
 
 export async function run(): Promise<void> {
-  const extension = vscode.extensions.getExtension<Api>("spsoni.copy-pasta");
+  const extension = vscode.extensions.getExtension<Api>("spsoni.copy-pasta-files");
   assert.ok(extension, "the extension is installed");
   const api = await extension.activate();
   const failures: string[] = [];
