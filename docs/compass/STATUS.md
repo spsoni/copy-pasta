@@ -6,10 +6,10 @@
 - 001–003: monorepo, format spec + vectors, paste hardening → JetBrains 2.1.1 (2026-11-17, see stories/).
 
 ## Now
-- 004 vscode-core: format in TypeScript, zero runtime deps, vectors + interop CI (in progress)
+- 004 vscode-core done; 005 vscode-extension verifying on PR #12 (integration tests in CI, owner desktop check)
 
 ## Next
-1. 005 vscode-extension: commands, preview, status bar, packaging, release; host-neutral envelope wording
+1. First VS Code release (vscode-v0.1.0) once the owner has the publisher accounts; JetBrains 2.1.2 (wording, ZIP caps)
 2. 006 Rust CLI `copy-pasta copy | paste`, passing the vectors
 3. 007 macOS Finder integration (Quick Action first) · 008 Windows Explorer menu
 4. 009 public website on GitHub Pages (owner's request, 2026-11-17)

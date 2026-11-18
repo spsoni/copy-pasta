@@ -6,7 +6,7 @@
 GRADLE := intellij/gradlew -p intellij --console=plain
 
 .DEFAULT_GOAL := help
-.PHONY: help setup-mac hooks check test lint format vscode-check interop vectors build run verify clean release
+.PHONY: help setup-mac hooks check test lint format vscode-check vscode-package vscode-release interop vectors build run verify clean release
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -45,6 +45,22 @@ format: ## Auto-format Kotlin sources with ktlint
 vscode-check: ## VS Code extension: type-check + tests incl. the spec vectors (npm ci on first use)
 	@test -d vscode/node_modules || (cd vscode && npm ci)
 	cd vscode && npm run check
+
+vscode-package: ## VS Code extension: build the .vsix into vscode/ (vsce runs pinned via npx, not installed)
+	@test -d vscode/node_modules || (cd vscode && npm ci)
+	cd vscode && npm run package
+
+vscode-release: ## Cut a VS Code release: make vscode-release VERSION=X.Y.Z (bump, date CHANGELOG, commit, tag vscode-vX.Y.Z)
+	@test -n "$(VERSION)" || { echo "usage: make vscode-release VERSION=X.Y.Z"; exit 1; }
+	@echo "$(VERSION)" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$$' || { echo "VERSION must be X.Y.Z (the VS Code Marketplace has no pre-release labels)"; exit 1; }
+	@test -z "$$(git status --porcelain)" || { echo "working tree not clean"; exit 1; }
+	@if git rev-parse -q --verify "refs/tags/vscode-v$(VERSION)" >/dev/null; then echo "tag vscode-v$(VERSION) already exists"; exit 1; fi
+	cd vscode && npm version "$(VERSION)" --no-git-tag-version --allow-same-version >/dev/null
+	@# node, not sed: a newline in the replacement isn't portable between GNU and BSD sed
+	cd vscode && node -e 'const fs=require("fs"),d=new Date().toISOString().slice(0,10),f="CHANGELOG.md",t=fs.readFileSync(f,"utf8"); if(!t.includes("## [Unreleased]\n"))process.exit(1); fs.writeFileSync(f,t.replace("## [Unreleased]\n","## [Unreleased]\n\n## [$(VERSION)] - "+d+"\n"))'
+	git commit -am "Release VS Code extension v$(VERSION)"
+	git tag -a "vscode-v$(VERSION)" -m "Copy-Pasta for VS Code $(VERSION)"
+	@echo "Tagged vscode-v$(VERSION). Publish with:  git push origin HEAD vscode-v$(VERSION)"
 
 interop: ## Cross-check JetBrains <-> VS Code: each encodes spec/interop/fixture.json, the other decodes it
 	@test -d vscode/node_modules || (cd vscode && npm ci)

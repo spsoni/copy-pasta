@@ -1,28 +1,142 @@
 {
   "name": "copy-pasta",
   "displayName": "Copy-Pasta",
-  "description": "Send files and folders through any chat as one block of text, and paste them back as real files.",
+  "description": "Send files and folders through any chat as one block of text, and paste them back as real files. Works with the JetBrains plugin.",
   "version": "0.1.0",
   "publisher": "spsoni",
   "license": "MIT",
   "private": true,
+  "icon": "images/icon.png",
+  "homepage": "https://github.com/spsoni/copy-pasta",
+  "bugs": {
+    "url": "https://github.com/spsoni/copy-pasta/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/spsoni/copy-pasta",
     "directory": "vscode"
   },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "copy",
+    "paste",
+    "share",
+    "files",
+    "chat",
+    "clipboard",
+    "zip",
+    "encrypt"
+  ],
   "engines": {
     "node": ">=20",
     "vscode": "^1.90.0"
   },
+  "main": "./out/src/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    },
+    "virtualWorkspaces": {
+      "supported": "limited",
+      "description": "Copy works anywhere; Paste needs a folder on this computer."
+    }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "copyPasta.copy",
+        "title": "Copy",
+        "category": "Copy-Pasta"
+      },
+      {
+        "command": "copyPasta.copyEncrypted",
+        "title": "Copy Encrypted…",
+        "category": "Copy-Pasta"
+      },
+      {
+        "command": "copyPasta.paste",
+        "title": "Paste…",
+        "category": "Copy-Pasta"
+      },
+      {
+        "command": "copyPasta.pasteFromFile",
+        "title": "Paste from File…",
+        "category": "Copy-Pasta"
+      },
+      {
+        "command": "copyPasta.saveAsFile",
+        "title": "Save Clipboard as File…",
+        "category": "Copy-Pasta"
+      },
+      {
+        "command": "copyPasta.clearClipboard",
+        "title": "Clear from Clipboard",
+        "category": "Copy-Pasta"
+      },
+      {
+        "command": "copyPasta.statusMenu",
+        "title": "Clipboard Menu",
+        "category": "Copy-Pasta"
+      }
+    ],
+    "submenus": [
+      {
+        "id": "copyPasta.explorer",
+        "label": "Copy-Pasta"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "submenu": "copyPasta.explorer",
+          "group": "6_copypath@90"
+        }
+      ],
+      "copyPasta.explorer": [
+        {
+          "command": "copyPasta.copy",
+          "group": "1_copy@1"
+        },
+        {
+          "command": "copyPasta.copyEncrypted",
+          "group": "1_copy@2"
+        },
+        {
+          "command": "copyPasta.paste",
+          "group": "2_paste@1",
+          "when": "explorerResourceIsFolder"
+        },
+        {
+          "command": "copyPasta.pasteFromFile",
+          "group": "2_paste@2",
+          "when": "explorerResourceIsFolder"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "copyPasta.statusMenu",
+          "when": "false"
+        }
+      ]
+    }
+  },
   "scripts": {
     "build": "tsc -p .",
-    "test": "node --test \"out/test/**/*.test.js\"",
+    "test": "node --test out/test/*.test.js",
     "check": "npm run build && npm test",
-    "interop": "npm run build && node out/test/interop.js"
+    "interop": "npm run build && node out/test/interop.js",
+    "test:integration": "npm run build && node out/test/integration/runTests.js",
+    "package": "npm run build && npm --prefix tools ci --no-audit --silent && tools/node_modules/.bin/vsce package --no-dependencies"
   },
   "devDependencies": {
     "@types/node": "20.19.43",
+    "@types/vscode": "1.90.0",
+    "@vscode/test-electron": "3.1.0",
     "typescript": "6.0.3"
   }
 }

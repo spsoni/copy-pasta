@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { CopyPastaError, crypto, decodeText, envelope, fileMode, pathRules, zip, type FileEntry } from "../src/format";
+import { decodeInWorker } from "../src/format/worker";
 
 const files: FileEntry[] = [
   { path: "demo/README.md", bytes: Buffer.from("# Demo\n"), executable: false, mode: 0o644 },
@@ -125,6 +126,26 @@ describe("crypto", () => {
     const started = performance.now();
     assert.equal(await category(crypto.decrypt(Buffer.concat([header, Buffer.alloc(16 + 12 + 15)]), "x")), "INVALID_ARCHIVE");
     assert.ok(performance.now() - started < 500);
+  });
+});
+
+describe("worker decoding", () => {
+  it("decodes in a worker with the same results and error categories", async () => {
+    const text = envelope.encode(zip.encode(files), false, "7 files, 1 KB");
+    const decoded = await decodeInWorker(text);
+    assert.deepEqual(
+      decoded.map((f) => [f.path, f.bytes.toString("base64"), f.mode, f.executable]),
+      files.map((f) => [f.path, f.bytes.toString("base64"), f.mode, f.executable]),
+    );
+    assert.equal(await category(decodeInWorker(text.slice(0, 200))), "INCOMPLETE");
+    assert.equal(await category(decodeInWorker("hello")), "NOT_FOUND");
+  });
+
+  it("can be cancelled", async () => {
+    const abort = new AbortController();
+    const pending = decodeInWorker(envelope.encode(await crypto.encrypt(Buffer.from("x"), "pw", 5_000_000), true, "1 file, 1 byte"), "pw", abort.signal);
+    setTimeout(() => abort.abort(), 50);
+    await assert.rejects(pending, /cancelled/);
   });
 });
 

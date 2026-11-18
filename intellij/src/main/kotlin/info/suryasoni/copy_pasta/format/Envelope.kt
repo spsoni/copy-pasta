@@ -8,7 +8,7 @@ import java.util.regex.Pattern
  *
  * ```
  * -----BEGIN COPY-PASTA-----
- * Copy-Pasta: 3 files, 4.1 KB. Paste it with the Copy-Pasta plugin for JetBrains IDEs: https://github.com/spsoni/copy-pasta
+ * Copy-Pasta: 3 files, 4.1 KB. Paste it with Copy-Pasta for JetBrains IDEs or VS Code: https://github.com/spsoni/copy-pasta
  * Format: 2; length: 5612
  * <Base64, wrapped at 76 columns>
  * -----END COPY-PASTA-----
@@ -52,7 +52,7 @@ object Envelope {
         return buildString {
             append("-----BEGIN ").append(label).append("-----\n")
             append("Copy-Pasta: ").append(summary)
-            append(". Paste it with the Copy-Pasta plugin for JetBrains IDEs: ").append(HOME_URL).append('\n')
+            append(". Paste it with Copy-Pasta for JetBrains IDEs or VS Code: ").append(HOME_URL).append('\n')
             append("Format: ").append(FORMAT_VERSION).append("; length: ").append(body.length).append('\n')
             body.chunked(LINE_WIDTH).forEach { append(it).append('\n') }
             append("-----END ").append(label).append("-----\n")

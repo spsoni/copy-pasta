@@ -31,7 +31,7 @@ Every product reads and writes the same text, so you can copy in one and paste i
 | Product | Status | Folder |
 |---|---|---|
 | **JetBrains IDEs** (IntelliJ IDEA, PyCharm, WebStorm, GoLand, …) | [Available on the JetBrains Marketplace](https://plugins.jetbrains.com/plugin/36213-copy-pasta) | [`intellij/`](intellij/README.md) |
-| **VS Code** | Planned | — |
+| **VS Code** (and VSCodium, Cursor via Open VSX) | In development: first release pending | [`vscode/`](vscode/README.md) |
 | **macOS Finder** right-click menu | Planned | — |
 | **Windows Explorer** right-click menu | Planned | — |
 
@@ -48,7 +48,7 @@ preview first. Encrypted text uses AES-256-GCM with a PBKDF2-derived key; the pa
 - [`spec/`](spec/) — the clipboard format every product shares ([FORMAT.md](spec/FORMAT.md)), the conformance
   [vectors](spec/vectors/README.md) each one is tested against, and the [feature parity](spec/FEATURES.md) table.
 - [`intellij/`](intellij/) — the JetBrains plugin (Kotlin, Gradle).
-- [`vscode/`](vscode/) — the VS Code extension (TypeScript, no runtime dependencies), in development.
+- [`vscode/`](vscode/) — the VS Code extension (TypeScript, no runtime dependencies), first release pending.
 - [`AGENTS.md`](AGENTS.md) — conventions, decisions and lessons for contributors.
 - Run `make help` at the root for build, test and release targets.
 

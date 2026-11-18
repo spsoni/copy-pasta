@@ -29,7 +29,7 @@ needed, unpack with strict path and size checks, show a preview, then write.
 
 ```
 -----BEGIN COPY-PASTA-----
-Copy-Pasta: 3 files, 4.1 KB. Paste it with the Copy-Pasta plugin for JetBrains IDEs: https://github.com/spsoni/copy-pasta
+Copy-Pasta: 3 files, 4.1 KB. Paste it with Copy-Pasta for JetBrains IDEs or VS Code: https://github.com/spsoni/copy-pasta
 Format: 2; length: 5612
 UEsDBBQACAgIA…   (Base64, 76 characters per line)
 -----END COPY-PASTA-----

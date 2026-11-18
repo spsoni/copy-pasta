@@ -10,6 +10,11 @@
   200 MB limit, and an archive may hold at most 20,000 entries in total, folders included. Before, either could make
   a paste spend a long time decompressing in the background (nothing was written).
 
+### Changed
+
+- The line above the copied text now reads "Paste it with Copy-Pasta for JetBrains IDEs or VS Code", because the
+  new VS Code extension reads and writes the same text.
+
 ## [2.1.1] - 2026-11-17
 
 ### Security

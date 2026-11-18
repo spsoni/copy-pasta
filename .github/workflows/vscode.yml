@@ -37,7 +37,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v7
         with:
-          node-version: 20  # what VS Code 1.90 runs
+          node-version: 22  # for the tooling; the extension itself runs on VS Code's Node (20 in 1.90, covered by the integration job)
           cache: npm
           cache-dependency-path: vscode/package-lock.json
 
@@ -56,3 +56,46 @@ jobs:
 
       - name: Type-check and test
         run: npm run check
+
+      - name: Package and inspect the .vsix
+        run: |
+          npm run package
+          VSIX="$(ls -- *.vsix)"
+          unzip -l "$VSIX" | tee "$RUNNER_TEMP/vsix.txt"
+          if grep -qE 'node_modules/|/test/|\.ts$|\.map$' "$RUNNER_TEMP/vsix.txt"; then
+            echo "::error::the .vsix contains dependencies, tests, sources or source maps"
+            exit 1
+          fi
+          echo "VSIX=$VSIX" >> "$GITHUB_ENV"
+
+      - name: Upload the .vsix
+        uses: actions/upload-artifact@v7
+        with:
+          name: copy-pasta-vsix
+          path: vscode/*.vsix
+
+  integration:
+    name: Integration (VS Code ${{ matrix.vscode }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        vscode: [ '1.90.0', 'stable' ]  # the oldest supported, and the current release
+    steps:
+      - name: Fetch Sources
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: vscode/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Run inside VS Code
+        env:
+          VSCODE_TEST_VERSION: ${{ matrix.vscode }}
+        run: xvfb-run -a npm run test:integration

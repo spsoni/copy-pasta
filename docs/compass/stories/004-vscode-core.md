@@ -2,7 +2,7 @@
 
 > Written in plan mode as the plan; owner approval of the plan = approval of this story.
 
-**Status:** in-progress
+**Status:** done (PR #12)
 **Depends on:** 002, 003
 
 ## Goal
