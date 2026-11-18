@@ -31,7 +31,7 @@ Every product reads and writes the same text, so you can copy in one and paste i
 | Product | Status | Folder |
 |---|---|---|
 | **JetBrains IDEs** (IntelliJ IDEA, PyCharm, WebStorm, GoLand, …) | [Available on the JetBrains Marketplace](https://plugins.jetbrains.com/plugin/36213-copy-pasta) | [`intellij/`](intellij/README.md) |
-| **VS Code** (and VSCodium, Cursor via Open VSX) | In development: first release pending | [`vscode/`](vscode/README.md) |
+| **VS Code** (and VSCodium, Cursor via Open VSX) | [Available on the VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=spsoni.copy-pasta-files) (Open VSX pending) | [`vscode/`](vscode/README.md) |
 | **macOS Finder** right-click menu | Planned | — |
 | **Windows Explorer** right-click menu | Planned | — |
 
