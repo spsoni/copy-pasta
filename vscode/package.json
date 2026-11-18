@@ -134,7 +134,7 @@
     "package": "npm run build && npm --prefix tools ci --no-audit --silent && tools/node_modules/.bin/vsce package --no-dependencies"
   },
   "devDependencies": {
-    "@types/node": "20.19.43",
+    "@types/node": "26.6.6",
     "@types/vscode": "1.90.0",
     "@vscode/test-electron": "3.1.0",
     "typescript": "6.0.3"
