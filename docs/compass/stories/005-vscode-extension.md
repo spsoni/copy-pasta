@@ -3,7 +3,7 @@
 > Written in plan mode as the plan; owner approval of the plan = approval of this story. Details filled in from the
 > approved outline once 004's core existed.
 
-**Status:** verifying (CI integration tests, owner desktop check)
+**Status:** done; first release waits on the Marketplace publisher (`VSCE_PAT`)
 **Depends on:** 004
 
 ## Goal
@@ -38,11 +38,12 @@ either product pastes in the other. Same security posture: no network, no teleme
   `docs/compass/**`.
 
 ## Acceptance check
-- [ ] `make vscode-check` green (unit + vectors): 122 tests, 0 failures locally. The integration tests (7, inside
-  VS Code 1.90.0 and stable) run only in CI.
+- [x] `make vscode-check` green (unit + vectors): 122 tests, 0 failures locally. The integration tests (7, inside
+  VS Code 1.90.0 and stable) run only in CI: all 7 passed on both (PR #12, run 44208188497).
 - [x] `make vscode-package`: a 44 KB `.vsix` with 22 files (compiled JS, icon, README, changelog, license). No
   `node_modules`, tests, sources, source maps or `tools/`; CI fails the job if any appear.
-- [ ] Interop still green; text copied by the extension pastes in the plugin (CI) and vice versa.
+- [x] Interop still green; text copied by the extension pastes in the plugin (CI) and vice versa: `JetBrains ⇄ VS Code`
+  passed on PR #12, and the owner pasted between 2.1.1 and the extension on a desktop (2026-11-18).
 - [x] Independent review of the extension layer, checked against the VS Code 1.90 sources. Fixed:
   - **Undo of an overwrite deleted the file:** VS Code's undo of an overwriting `createFile` is a delete. Existing
     files are now deleted, which snapshots them for undo, and created again in the same edit.
@@ -69,7 +70,8 @@ either product pastes in the other. Same security posture: no network, no teleme
     - commands report their own failures;
     - status bar refreshed when its menu opens;
     - BSD-safe release recipe.
-- [ ] Owner checks the UI on a desktop (dev01 is headless) before the first `vscode-v0.1.0` tag.
+- [x] Owner checks the UI on a desktop (dev01 is headless) before the first `vscode-v0.1.0` tag: the CI-built
+  `.vsix` installed and worked (2026-11-18).
 
 ## Notes
 - No glob library (zero runtime deps): `files.exclude` comes from `workspace.findFiles`, which applies it, and the
