@@ -92,7 +92,7 @@ export function encode(payload: Uint8Array, encrypted: boolean, summary: string)
   const label = encrypted ? "COPY-PASTA ENCRYPTED" : "COPY-PASTA";
   const lines = [
     `-----BEGIN ${label}-----`,
-    `Copy-Pasta: ${summary}. Paste it with the Copy-Pasta plugin for JetBrains IDEs: ${HOME_URL}`,
+    `Copy-Pasta: ${summary}. Paste it with Copy-Pasta for JetBrains IDEs or VS Code: ${HOME_URL}`,
     `Format: ${FORMAT_VERSION}; length: ${body.length}`,
   ];
   for (let i = 0; i < body.length; i += LINE_WIDTH) lines.push(body.slice(i, i + LINE_WIDTH));

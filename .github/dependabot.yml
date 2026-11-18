@@ -15,6 +15,13 @@ updates:
       interval: "weekly"
     cooldown:
       default-days: 14  # versions at least two weeks old, as for everything else here
+  # Packaging and publishing tools (vsce, ovsx), used only by `make vscode-package` and the release workflow
+  - package-ecosystem: "npm"
+    directory: "/vscode/tools"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 14
   # Maintain dependencies for GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"

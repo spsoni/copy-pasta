@@ -1,0 +1,121 @@
+# Tag-based release of the VS Code extension. Pushing a tag `vscode-vX.Y.Z` (cut with `make vscode-release
+# VERSION=X.Y.Z`) runs this workflow:
+#   1. checks the tag matches vscode/package.json and that vscode/CHANGELOG.md has an entry for it,
+#   2. type-checks and tests (incl. the spec vectors) and runs the integration tests inside VS Code,
+#   3. packages the .vsix and creates (or updates, on a re-run) the GitHub release with the changelog entry as notes,
+#   4. publishes to the VS Code Marketplace (secret VSCE_PAT) and Open VSX (secret OVSX_PAT), each when its secret exists.
+# The tokens are only given to the step that uses them, and the publishing tools come from vscode/tools' lockfile.
+# The JetBrains plugin has its own release.yml with `vX.Y.Z` tags.
+
+name: Release VS Code extension
+on:
+  push:
+    tags: [ 'vscode-v[0-9]+.[0-9]+.[0-9]+' ]
+
+concurrency:
+  group: release-vscode
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    working-directory: vscode
+
+jobs:
+  release:
+    name: Release ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Sources
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            vscode/package-lock.json
+            vscode/tools/package-lock.json
+
+      - name: Check tag, version and changelog
+        id: meta
+        shell: bash
+        run: |
+          VERSION="$(node -p 'require("./package.json").version')"
+          if [ "vscode-v$VERSION" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match version $VERSION in vscode/package.json"
+            exit 1
+          fi
+          awk -v v="$VERSION" '
+            index($0, "## [" v "]") == 1 { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
+          if ! grep -q '[^[:space:]]' "$RUNNER_TEMP/notes.md"; then
+            echo "::error::vscode/CHANGELOG.md has no entry for $VERSION (run 'make vscode-release VERSION=$VERSION')"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Which stores to publish to
+        id: stores
+        env:
+          HAS_VSCE: ${{ secrets.VSCE_PAT != '' }}
+          HAS_OVSX: ${{ secrets.OVSX_PAT != '' }}
+        run: |
+          echo "vsce=$HAS_VSCE" >> "$GITHUB_OUTPUT"
+          echo "ovsx=$HAS_OVSX" >> "$GITHUB_OUTPUT"
+
+      - name: Install
+        run: npm ci
+
+      - name: No runtime dependencies
+        run: test "$(node -p 'Object.keys(require("./package.json").dependencies || {}).length')" = "0"
+
+      - name: Type-check and test
+        run: npm run check
+
+      - name: Integration tests inside VS Code
+        run: xvfb-run -a npm run test:integration
+
+      - name: Package
+        id: package
+        run: |
+          npm run package
+          echo "vsix=$(ls -- *.vsix)" >> "$GITHUB_OUTPUT"
+
+      # Not marked latest, so the JetBrains plugin's release stays "latest". Idempotent, so a failed publish can be re-run.
+      - name: Create or update the GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "${{ steps.package.outputs.vsix }}" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "${{ steps.package.outputs.vsix }}" \
+              --title "Copy-Pasta for VS Code ${{ steps.meta.outputs.version }}" \
+              --notes-file "$RUNNER_TEMP/notes.md" \
+              --verify-tag --latest=false
+          fi
+
+      - name: Publish to the VS Code Marketplace
+        if: ${{ steps.stores.outputs.vsce == 'true' }}
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: tools/node_modules/.bin/vsce publish --packagePath "${{ steps.package.outputs.vsix }}" --skip-duplicate
+
+      - name: Publish to Open VSX
+        if: ${{ steps.stores.outputs.ovsx == 'true' }}
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: tools/node_modules/.bin/ovsx publish "${{ steps.package.outputs.vsix }}" --skip-duplicate
+
+      - name: Note skipped publishing
+        if: ${{ steps.stores.outputs.vsce != 'true' || steps.stores.outputs.ovsx != 'true' }}
+        run: echo "::warning::Publishing skipped for any store whose token (VSCE_PAT, OVSX_PAT) isn't set. The .vsix is on the GitHub release."

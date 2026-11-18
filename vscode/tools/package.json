@@ -1,0 +1,9 @@
+{
+  "name": "copy-pasta-vscode-tools",
+  "private": true,
+  "description": "Packaging and publishing tools for the VS Code extension, pinned with a lockfile. Not part of the extension.",
+  "devDependencies": {
+    "@vscode/vsce": "4.1.0",
+    "ovsx": "1.3.0"
+  }
+}

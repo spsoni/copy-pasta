@@ -89,6 +89,16 @@ src/test/kotlin/   format/* are JUnit 4 unit tests; ide/* are light platform tes
 
 ## Release (tag-based)
 
+**VS Code extension:** `make vscode-release VERSION=X.Y.Z` (bumps `vscode/package.json`, dates
+`vscode/CHANGELOG.md`, commits, tags `vscode-vX.Y.Z`), then `git push origin HEAD vscode-vX.Y.Z`.
+`release-vscode.yml` checks tag/version/changelog, runs the tests and the integration tests inside VS Code, packages
+the `.vsix`, creates a GitHub release (not marked latest, so the plugin's release stays "latest"), and publishes to
+the VS Code Marketplace (`VSCE_PAT`) and Open VSX (`OVSX_PAT`) when those secrets exist. Unlike JetBrains, the first
+upload can be automated. `vscode.yml` runs integration tests on VS Code 1.90.0 (the floor) and stable under
+`xvfb-run`; dev01 has no display, so they run only in CI.
+
+**JetBrains plugin:**
+
 1. `make release VERSION=X.Y.Z` on a clean tree. It sets `pluginVersion`, runs `patchChangelog` (moves `[Unreleased]`
    under the version with today's date), commits and creates an annotated tag `vX.Y.Z`.
 2. `git push origin HEAD vX.Y.Z`. The tag triggers `.github/workflows/release.yml`, which:
@@ -106,6 +116,22 @@ or the workflow changes. It no longer drafts releases. JetBrains plugin tags sta
 `vscode-v…` and `desktop-v…`, which release.yml's tag pattern doesn't match.
 
 ## Decisions & lessons log (newest first — keep this current)
+
+- **2026-11-18 — VS Code extension (Compass stories 004–005).** Owner decisions: zero runtime dependencies (own ZIP
+  code), publisher `spsoni`, tags `vscode-vX.Y.Z`. Each layer got an independent review that wasn't anchored on the
+  author's view, and each found real bugs. Lessons:
+  - **A second implementation is a security review of the first:** writing the TypeScript reader exposed the Kotlin
+    reader's unbounded directory-entry inflation. A differential fuzz against a Java port then found reader
+    divergences (now vectors) and a record flood, now a spec cap of 20,000 records in both.
+  - **VS Code's undo of `WorkspaceEdit.createFile({ overwrite: true })` deletes the file** without restoring the
+    old content. Delete then create in the same edit: the delete snapshots the original.
+  - **VS Code notifications render `[text](command:…)` as clickable command links:** never put untrusted text
+    (archive names, decoder messages) in `show*Message`.
+  - **`node --test` globs need Node 21+:** CI's Node 20 found nothing to run. Let the shell expand the pattern.
+  - **Packaging tools carry their own advisories** (vsce's globbing libraries): they live in `vscode/tools/` with
+    their own lockfile, out of the extension's dependency tree and audit.
+  - **Building an invisible character from a `\u` escape** can turn into the literal character in a generated
+    source file. Write `String.fromCodePoint(0x…)` / `Char(0x…)` instead.
 
 - **2026-11-17 — 2.1.1 paste hardening (Compass story 003, owner: "security is most important").** The independent
   review of the new spec against the code found gaps that had shipped in 2.0 and 2.1.0. Fixed, each with a test that

@@ -1,0 +1,8 @@
+# Only the compiled extension, its icon and the Marketplace texts go into the .vsix.
+**
+!package.json
+!README.md
+!CHANGELOG.md
+!LICENSE
+!images/icon.png
+!out/src/**/*.js

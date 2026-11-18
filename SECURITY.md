@@ -21,6 +21,23 @@ private in transit**.
 | Clipboard contents read by chat services or other apps | `Crypto` | Optional AES-256-GCM with a PBKDF2-HMAC-SHA256 key (600k iterations, stored in the payload so it can be raised later; reads are capped at 5M), random 16-byte salt and 12-byte IV per copy. A wrong passphrase or tampered text fails authentication; nothing is extracted. The passphrase is never stored. Its char array and the dialog fields are cleared after use (best effort: the JVM may keep copies until garbage collection). |
 | Huge selection freezes the IDE | Size caps, background tasks | 10 MB per file (skipped and reported) and 50 MB per copy (refused). Collection, encryption, Base64 decoding, decryption and unzipping run in `Task.Backgroundable`. Only a marker check happens on the UI thread. |
 
+### VS Code extension
+
+The extension (`vscode/`) applies the same controls. The format core is `vscode/src/format/`, held to the same shared
+vectors and an interop test against the plugin. In addition:
+
+- **No third-party runtime code.** The ZIP reader and writer are our own, on Node's `zlib` and `crypto`. CI fails if
+  a runtime dependency appears. Dev dependencies are pinned, at least two weeks old, and installed without install
+  scripts. The packager (`vsce`) isn't installed at all: it runs pinned via `npx` at packaging time.
+- **Decoding runs in a worker thread** with a capped heap, so a huge or hostile paste can't freeze VS Code, and
+  Cancel stops it.
+- **The preview shows paths literally:** VS Code would render `$(name)` in a QuickPick label as an icon, so that
+  sequence is defused.
+- **Writes go through one `WorkspaceEdit`**, so the paste can be undone. VS Code's file service follows links, so
+  each path is re-checked with `lstat` just before writing (the same residual race as below).
+- **The clipboard is cleared only on the user's explicit request.** VS Code can't remove items from an OS clipboard
+  history.
+
 ## Known limitations
 
 - **Visible metadata.** The header line of an encrypted copy shows the file count and total size. File names and
