@@ -191,12 +191,20 @@ whose 30-byte header is cut short; everything after it, including the central di
 
 1. The payload MUST start with `PK\x03\x04`; otherwise **INVALID_ARCHIVE**.
 2. Each entry MUST use method 0 (Stored) or 8 (Deflate) and MUST NOT set the encryption flag (bit 0). A Stored entry
-   MUST NOT set bit 3. Sizes and the CRC-32 (from the local header, or from the data descriptor for bit 3) MUST match
-   the inflated content. Truncated data or any other structural error: **INVALID_ARCHIVE**.
-3. Names are decoded as **UTF-8 whatever bit 11 says** (never CP437); invalid UTF-8 is **INVALID_ARCHIVE**. No
+   MUST NOT set bit 3; its length is its uncompressed size (the compressed-size field isn't used, so `0xFFFFFFFF`
+   there is not a Zip64 marker). Sizes and the CRC-32 MUST match the inflated content, except that an empty Stored
+   entry's CRC isn't checked (the reference stops before comparing it). For bit 3, sizes and CRC come from the data
+   descriptor after the data: its `PK\x07\x08` signature is optional, but at least 16 bytes MUST remain after the
+   data (the reference reads 16 bytes before deciding), or it's INVALID_ARCHIVE. Truncated data or any other
+   structural error: **INVALID_ARCHIVE**. Zip64 is never needed (the limits are far below 4 GB); readers MAY reject
+   it as INVALID_ARCHIVE.
+3. More than **20,000 local records** in total, directory entries included: **INVALID_ARCHIVE**, so a flood of
+   empty entries can't keep the reader busy.
+4. Names are decoded as **UTF-8 whatever bit 11 says** (never CP437); invalid UTF-8 is **INVALID_ARCHIVE**. No
    Unicode normalisation (NFC/NFD) is applied.
-4. Skip directory entries: names ending in `/`, tested on the raw name before step 5 (`a\` is a file named `a`).
-5. **Normalise the name:**
+5. Skip directory entries: names ending in `/`, tested on the raw name before step 6 (`a\` is a file named `a`).
+   Their data (normally none) still counts against the size limit of step 9.
+6. **Normalise the name:**
    1. reject a name containing NUL or any of U+0001–001F with **INVALID_ARCHIVE**;
    2. replace `\` with `/`;
    3. reject a name that starts with `/`, or with a drive letter and colon (`^[A-Za-z]:`), with **INVALID_ARCHIVE**;
@@ -207,12 +215,12 @@ whose 30-byte header is cut short; everything after it, including the central di
    Treat every segment as an opaque file name when writing: create files one segment at a time below the target,
    and never hand the path to a path-join that interprets prefixes (Rust's `PathBuf::push("C:")` on Windows replaces
    the whole path).
-6. A path equal to an earlier entry's path (exact, case-sensitive comparison): **INVALID_ARCHIVE**.
-7. More than 10,000 files: **INVALID_ARCHIVE**.
-8. Inflate the content, counting bytes as they are produced, and never trust declared sizes. More than 200 MB in
+7. A path equal to an earlier entry's path (exact, case-sensitive comparison): **INVALID_ARCHIVE**.
+8. More than 10,000 files: **INVALID_ARCHIVE**.
+9. Inflate the content, counting bytes as they are produced, and never trust declared sizes. More than 200 MB in
    total across all entries: **INVALID_ARCHIVE** (zip-bomb protection). Stop inflating as soon as the limit is
    passed.
-9. Read the permissions field (§4.3) from the **local header's** extra data. Ignore the external file attributes
+10. Read the permissions field (§4.3) from the **local header's** extra data. Ignore the external file attributes
    and version-made-by: permissions come only from `0x4350`.
 
 An archive with no files (only directory entries, or nothing) is not an error: tell the user there is nothing to

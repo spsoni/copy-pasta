@@ -151,6 +151,12 @@ tasks {
         dependsOn(signPlugin)
     }
 
+    // The build cache twice restored test classes compiled against an older constructor (a new default parameter),
+    // giving NoSuchMethodError. Test classes compile in seconds, so they're never taken from the cache.
+    named("compileTestKotlin") {
+        outputs.cacheIf { false }
+    }
+
     // The IntelliJ test framework otherwise forks the test JVM with -Xmx2048m (see gradle.properties memory notes).
     withType<Test>().configureEach {
         maxHeapSize = "1g"
@@ -163,6 +169,13 @@ tasks {
         // `make vectors` (-PregenerateVectors=true, or =force to rewrite every file) runs VectorGenerator.
         providers.gradleProperty("regenerateVectors").orNull?.let {
             systemProperty("copyPasta.regenerateVectors", it)
+            outputs.upToDateWhen { false }
+        }
+        // `make interop` / interop.yml: InteropTest encodes or decodes spec/interop/fixture.json.
+        providers.gradleProperty("interopMode").orNull?.let {
+            systemProperty("copyPasta.interopMode", it)
+            systemProperty("copyPasta.interopDir", providers.gradleProperty("interopDir").get())
+            providers.gradleProperty("interopFrom").orNull?.let { from -> systemProperty("copyPasta.interopFrom", from) }
             outputs.upToDateWhen { false }
         }
     }

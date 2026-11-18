@@ -1,0 +1,28 @@
+{
+  "name": "copy-pasta",
+  "displayName": "Copy-Pasta",
+  "description": "Send files and folders through any chat as one block of text, and paste them back as real files.",
+  "version": "0.1.0",
+  "publisher": "spsoni",
+  "license": "MIT",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spsoni/copy-pasta",
+    "directory": "vscode"
+  },
+  "engines": {
+    "node": ">=20",
+    "vscode": "^1.90.0"
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "test": "node --test \"out/test/**/*.test.js\"",
+    "check": "npm run build && npm test",
+    "interop": "npm run build && node out/test/interop.js"
+  },
+  "devDependencies": {
+    "@types/node": "20.19.43",
+    "typescript": "6.0.3"
+  }
+}

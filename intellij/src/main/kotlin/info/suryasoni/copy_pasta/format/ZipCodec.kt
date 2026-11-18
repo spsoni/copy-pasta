@@ -34,7 +34,8 @@ object ZipCodec {
     private const val PERMISSIONS_FIELD_ID = 0x4350 // "CP"
     private val ZIP_MAGIC = byteArrayOf(0x50, 0x4B, 0x03, 0x04)
 
-    class Limits(val maxEntries: Int = 10_000, val maxTotalBytes: Long = 200L * 1024 * 1024)
+    /** [maxRecords] counts every local record, directory entries included, so a flood of empty entries is bounded. */
+    class Limits(val maxEntries: Int = 10_000, val maxTotalBytes: Long = 200L * 1024 * 1024, val maxRecords: Int = 20_000)
 
     fun encode(files: List<FileEntry>): ByteArray {
         val out = ByteArrayOutputStream()
@@ -58,11 +59,18 @@ object ZipCodec {
         val files = mutableListOf<FileEntry>()
         val seen = HashSet<String>()
         var total = 0L
+        var records = 0
         try {
             ZipInputStream(ByteArrayInputStream(zip)).use { input ->
                 while (true) {
                     val entry = input.nextEntry ?: break
-                    if (entry.isDirectory) continue
+                    if (++records > limits.maxRecords) throw InvalidArchiveException("more than ${limits.maxRecords} ZIP records")
+                    if (entry.isDirectory) {
+                        // A directory entry has no use for data, but it still has to be read to reach the next entry:
+                        // count it against the limit, or it could be a decompression bomb (spec/FORMAT.md §4.2).
+                        total += readLimited(input, limits.maxTotalBytes - total).size
+                        continue
+                    }
                     if (files.size >= limits.maxEntries) throw InvalidArchiveException("more than ${limits.maxEntries} files")
                     val path = safePath(entry.name)
                     if (!seen.add(path)) throw InvalidArchiveException("duplicate entry: $path")

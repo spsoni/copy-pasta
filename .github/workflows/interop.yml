@@ -1,0 +1,58 @@
+# Cross-implementation check: the JetBrains plugin and the VS Code extension each encode spec/interop/fixture.json
+# (plain and encrypted), and each decodes the other's output. Same as `make interop`.
+
+name: Interop
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'intellij/**'
+      - 'vscode/**'
+      - 'spec/**'
+      - '.github/workflows/interop.yml'
+  pull_request:
+    paths:
+      - 'intellij/**'
+      - 'vscode/**'
+      - 'spec/**'
+      - '.github/workflows/interop.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  interop:
+    name: JetBrains ⇄ VS Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Sources
+        uses: actions/checkout@v7
+
+      - name: Setup Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: zulu
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: vscode/package-lock.json
+
+      - name: Install the VS Code extension's dev dependencies
+        working-directory: vscode
+        run: npm ci
+
+      - name: Encode and cross-decode
+        run: make interop

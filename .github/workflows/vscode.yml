@@ -1,0 +1,58 @@
+# CI for the VS Code extension (vscode/): type-check and tests, including every spec vector. Also guards the
+# zero-runtime-dependency rule: no third-party code may parse untrusted clipboard text.
+
+name: VS Code
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'vscode/**'
+      - 'spec/**'
+      - '.github/workflows/vscode.yml'
+  pull_request:
+    paths:
+      - 'vscode/**'
+      - 'spec/**'
+      - '.github/workflows/vscode.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: vscode
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Sources
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 20  # what VS Code 1.90 runs
+          cache: npm
+          cache-dependency-path: vscode/package-lock.json
+
+      - name: Install (no install scripts, see .npmrc)
+        run: npm ci
+
+      - name: No runtime dependencies
+        run: |
+          if [ "$(node -p 'Object.keys(require("./package.json").dependencies || {}).length')" != "0" ]; then
+            echo "::error::vscode/package.json has runtime dependencies; the extension must have none"
+            exit 1
+          fi
+
+      - name: Audit
+        run: npm audit --audit-level=low
+
+      - name: Type-check and test
+        run: npm run check

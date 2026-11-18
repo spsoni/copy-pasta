@@ -1,20 +1,19 @@
 # Status board — copy-pasta
 
-> ≤20 lines, always. In-flight + next + blocked. Story detail lives in stories/; releases in intellij/CHANGELOG.md.
+> ≤20 lines, always. In-flight + next + blocked. Story detail lives in stories/; releases in each product's CHANGELOG.
 
 ## Done
-- JetBrains plugin 2.1.0 released and on the Marketplace (pre-Compass; see AGENTS.md log).
+- 001–003: monorepo, format spec + vectors, paste hardening → JetBrains 2.1.1 (2026-11-17, see stories/).
 
 ## Now
-- 003 paste-hardening → 2.1.1 (in progress) · 001, 002 verifying on PR #9
+- 004 vscode-core: format in TypeScript, zero runtime deps, vectors + interop CI (in progress)
 
 ## Next
-1. 004 VS Code extension MVP (TypeScript) + cross-implementation interop CI
-2. 005 Rust CLI `copy-pasta copy | paste`, passing the vectors
-3. 006 macOS Finder integration (Quick Action first) · 007 Windows Explorer menu
-4. 008 host-neutral envelope wording once a second product ships
-5. 009 public website on GitHub Pages (owner's request, 2026-11-17): plan right after 2.1.1
+1. 005 vscode-extension: commands, preview, status bar, packaging, release; host-neutral envelope wording
+2. 006 Rust CLI `copy-pasta copy | paste`, passing the vectors
+3. 007 macOS Finder integration (Quick Action first) · 008 Windows Explorer menu
+4. 009 public website on GitHub Pages (owner's request, 2026-11-17)
 
 ## Blocked / decisions needed
-- VS Code Marketplace publisher + Open VSX account (owner), before 004 ships.
-- macOS signing/notarization (Apple Developer account) and Windows signing, before 006/007 ship.
+- VS Code Marketplace publisher `spsoni` + PAT (`VSCE_PAT`), Open VSX namespace + token (`OVSX_PAT`): before 005 ships.
+- macOS signing/notarization (Apple Developer account) and Windows signing, before 007/008 ship.

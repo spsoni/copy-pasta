@@ -10,13 +10,13 @@ change that adds or changes a feature in any product.
 
 | Feature | JetBrains | VS Code | macOS | Windows |
 |---|---|---|---|---|
-| Envelope write and tolerant read (quotes, CRLF, collapsed newlines, re-wrap) | ✅ | ⬜ | ⬜ | ⬜ |
-| Truncation detected and reported (INCOMPLETE) | ✅ | ⬜ | ⬜ | ⬜ |
-| Linear-time marker search | ✅ | ⬜ | ⬜ | ⬜ |
-| Passphrase encryption (`CPv2`, PBKDF2 600k, AES-256-GCM) | ✅ | ⬜ | ⬜ | ⬜ |
-| Path safety, duplicate rejection, 10k-file and 200 MB limits | ✅ | ⬜ | ⬜ | ⬜ |
-| Permissions: write `0x4350`, apply `safe` + `applied` | ✅ | ⬜ | ⬜ | ⬜ |
-| Paste plan: NEW / OVERWRITE / IDENTICAL / BLOCKED, VCS metadata blocked | ✅ | ⬜ | ⬜ | ⬜ |
+| Envelope write and tolerant read (quotes, CRLF, collapsed newlines, re-wrap) | ✅ | ✅ | ⬜ | ⬜ |
+| Truncation detected and reported (INCOMPLETE) | ✅ | ✅ | ⬜ | ⬜ |
+| Linear-time marker search | ✅ | ✅ | ⬜ | ⬜ |
+| Passphrase encryption (`CPv2`, PBKDF2 600k, AES-256-GCM) | ✅ | ✅ | ⬜ | ⬜ |
+| Path safety, duplicate rejection, 10k-file and 200 MB limits | ✅ | ✅ | ⬜ | ⬜ |
+| Permissions: write `0x4350`, apply `safe` + `applied` | ✅ | 🚧 format done, applying in 005 | ⬜ | ⬜ |
+| Paste plan: NEW / OVERWRITE / IDENTICAL / BLOCKED; VCS lookalikes, symlinks, Windows names blocked | ✅ | ✅ | ⬜ | ⬜ |
 | Preview before writing, files can be left out | ✅ | ⬜ | ⬜ | ⬜ |
 | Copy limits: 10 MB per file, 50 MB total | ✅ | ⬜ | ⬜ | ⬜ |
 

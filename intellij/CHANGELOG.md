@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### Security
+
+- Damaged or crafted archives can no longer keep the IDE busy: data hidden in folder entries now counts against the
+  200 MB limit, and an archive may hold at most 20,000 entries in total, folders included. Before, either could make
+  a paste spend a long time decompressing in the background (nothing was written).
+
 ## [2.1.1] - 2026-11-17
 
 ### Security
