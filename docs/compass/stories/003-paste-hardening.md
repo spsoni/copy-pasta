@@ -2,7 +2,7 @@
 
 > Written in plan mode as the plan; owner approval of the plan = approval of this story.
 
-**Status:** in-progress
+**Status:** done (merged in PR #9, released in 2.1.1)
 **Depends on:** 002
 
 ## Goal
@@ -56,8 +56,8 @@ it. The copy side already skips symlinks; this is about the recipient's tree.
   `make check`: 120 tests, 0 failures.
   Not fixed (documented in SECURITY.md): hard links, the residual plan→write race against a concurrent local
   process, and the per-directory case sensitivity of mixed mounts.
-- [ ] PR #9 CI green (Qodana red only because the PR crosses the move), verifier Compatible.
-- [ ] After merge: Qodana green on main; 2.1.1 released; Marketplace shows 2.1.1.
+- [x] PR #9 CI green, Qodana 0 problems, verifier Compatible (IU-253, IU-263).
+- [x] After merge: main green with Qodana 0 problems; 2.1.1 tagged, signed, GitHub release created, Marketplace upload succeeded (awaiting JetBrains moderation).
 
 ## Notes
 - Symlinks can't be expressed in vectors (they live in the recipient's tree): the spec states the rule, the Kotlin

@@ -29,6 +29,20 @@ class HardeningTest {
     }
 
     @Test
+    fun `the number of ZIP records is capped, directory entries included`() {
+        val out = ByteArrayOutputStream()
+        ZipOutputStream(out).use { zip ->
+            repeat(4) {
+                zip.putNextEntry(ZipEntry("d$it/"))
+                zip.closeEntry()
+            }
+        }
+        val archive = out.toByteArray()
+        assertEquals(0, ZipCodec.decode(archive, ZipCodec.Limits(maxEntries = 1, maxRecords = 4)).size)
+        assertThrows(InvalidArchiveException::class.java) { ZipCodec.decode(archive, ZipCodec.Limits(maxRecords = 3)) }
+    }
+
+    @Test
     fun `truncated deflate data is an invalid archive, not an unexpected error`() {
         val zip = zipOf("big.txt", ByteArray(100_000) { (it * 31).toByte() })
         assertThrows(InvalidArchiveException::class.java) { ZipCodec.decode(zip.copyOfRange(0, zip.size / 2)) }

@@ -8,6 +8,13 @@ updates:
     directory: "/intellij"
     schedule:
       interval: "weekly"
+  # The VS Code extension's dev dependencies (it has no runtime ones)
+  - package-ecosystem: "npm"
+    directory: "/vscode"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 14  # versions at least two weeks old, as for everything else here
   # Maintain dependencies for GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"

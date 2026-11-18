@@ -897,6 +897,78 @@
       }
     },
     {
+      "name": "zip-stored-empty-bad-crc",
+      "description": "An empty Stored entry with a non-zero CRC: the reference never checks an empty Stored entry's CRC.",
+      "file": "zip-stored-empty-bad-crc.txt",
+      "passphrase": null,
+      "expect": {
+        "files": [
+          {
+            "path": "a.txt",
+            "content": "",
+            "mode": null,
+            "executable": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "zip-stored-compressed-size-marker",
+      "description": "A Stored entry whose unused compressed-size field is 0xFFFFFFFF, without Zip64: not Zip64, decodes.",
+      "file": "zip-stored-compressed-size-marker.txt",
+      "passphrase": null,
+      "expect": {
+        "files": [
+          {
+            "path": "s.txt",
+            "content": "c3RvcmVk",
+            "mode": null,
+            "executable": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "zip-descriptor-unsigned",
+      "description": "A data descriptor without its optional signature, followed by another entry.",
+      "file": "zip-descriptor-unsigned.txt",
+      "passphrase": null,
+      "expect": {
+        "files": [
+          {
+            "path": "u.txt",
+            "content": "dW5zaWduZWQ=",
+            "mode": null,
+            "executable": false
+          },
+          {
+            "path": "n.txt",
+            "content": "bmV4dA==",
+            "mode": null,
+            "executable": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "zip-descriptor-unsigned-at-end",
+      "description": "An unsigned data descriptor with fewer than 16 bytes left: the reference reads 16 bytes, so it's damage.",
+      "file": "zip-descriptor-unsigned-at-end.txt",
+      "passphrase": null,
+      "expect": {
+        "error": "INVALID_ARCHIVE"
+      }
+    },
+    {
+      "name": "zip-directory-entry-bomb",
+      "description": "A directory entry carrying data that inflates past the 200 MB limit: directory data counts too.",
+      "file": "zip-directory-entry-bomb.txt",
+      "passphrase": null,
+      "expect": {
+        "error": "INVALID_ARCHIVE"
+      }
+    },
+    {
       "name": "summary-sanitized",
       "description": "The summary line is untrusted: only letters, digits, spaces and ,.- survive, capped at 60 characters.",
       "file": "summary-sanitized.txt",

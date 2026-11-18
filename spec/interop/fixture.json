@@ -1,0 +1,48 @@
+{
+  "description": "A tree every implementation encodes (plain and encrypted) and every other implementation decodes in CI (.github/workflows/interop.yml). Contents are Base64; modes are octal strings or null.",
+  "passphrase": "interop passphrase ✓",
+  "files": [
+    {
+      "path": "demo/README.md",
+      "content": "IyBJbnRlcm9wCgpDb3BpZWQgYnkgb25lIHByb2R1Y3QsIHBhc3RlZCBieSBhbm90aGVyLgo=",
+      "mode": "0644",
+      "executable": false
+    },
+    {
+      "path": "demo/run.sh",
+      "content": "IyEvYmluL3NoCmVjaG8gaW50ZXJvcAo=",
+      "mode": "0755",
+      "executable": true
+    },
+    {
+      "path": "demo/secret.pem",
+      "content": "cHJpdmF0ZQo=",
+      "mode": "0600",
+      "executable": false
+    },
+    {
+      "path": "demo/empty.txt",
+      "content": "",
+      "mode": "0644",
+      "executable": false
+    },
+    {
+      "path": "demo/bin.dat",
+      "content": "ACVKb5S53gMoTXKXvOEGK1B1mr/kCS5TeJ3C5wwxVnugxeoPNFl+o8jtEjdcgabL8BU6X4SpzvMYPWKHrNH2G0Bliq/U+R5DaI2y1/whRmuQtdr/JEluk7jdAidMcZa74AUqT3SZvuMILVJ3nMHmCzBVep/E6Q4zWH2ix+wRNluApcrvFDleg6jN8hc8YYar0PUaP2SJrtP4HUJnjLHW+yBFao+02f4jSG2St9wBJktwlbrfBClOc5i94gcsUXabwOUKL1R5nsPoDTJXfKHG6xA1Wn+kye4TOF2Cp8zxFjtgharP9Bk+Y4it0vccQWaLsNX6H0RpjrPY/SJHbJG22wAlSm+Uud4DKE1yl7zhBitQdZq/5AkuU3idwucMMVZ7oMXqDzRZfqPI7RI3XIGmy/AVOl+Eqc7zGD1ih6zR9htAZYqv1PkeQ2iNstf8IUZrkLXa/yRJbpO43QInTHGWu+AFKk90mb7jCC1Sd5zB5gswVXqfxOkOM1h9osfsETZbgKXK7xQ5XoOozfIXPGGGq9D1Gj9kia7T+B1CZ4yx1vsgRWqPtNn+I0htkrfcASZLcJW63wQpTnOYveIHLFF2m8DlCi9UeZ7D6A0yV3yhxusQNVp/pMnuEzhdgqfM8RY7YIWqz/QZPmOIrdL3HEFmi7DV+h9EaY6z2P0iR2yRtts=",
+      "mode": "0644",
+      "executable": false
+    },
+    {
+      "path": "demo/unicodé/naïve 世界.txt",
+      "content": "R3LDvMOfZSDwn5iACg==",
+      "mode": "0644",
+      "executable": false
+    },
+    {
+      "path": "demo/windows.txt",
+      "content": "Y29waWVkIG9uIFdpbmRvd3M6IG5vIG1vZGUNCg==",
+      "mode": null,
+      "executable": false
+    }
+  ]
+}

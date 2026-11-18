@@ -101,6 +101,33 @@ class VectorGenerator {
         return local + descriptor
     }
 
+    /** A hand-built local header followed by [name]; data and descriptor are appended by the caller. */
+    private fun localHeader(flags: Int, method: Int, crc: Long, compressedSize: Long, size: Long, name: String): ByteArray {
+        val nameBytes = name.toByteArray()
+        return byteArrayOf(0x50, 0x4B, 0x03, 0x04) + le16(20) + le16(flags) + le16(method) + le16(0) + le16(0x5C21) +
+            le32(crc) + le32(compressedSize) + le32(size) + le16(nameBytes.size) + le16(0) + nameBytes
+    }
+
+    private fun crc(data: ByteArray) = java.util.zip.CRC32().apply { update(data) }.value
+
+    private fun rawDeflate(data: ByteArray): ByteArray {
+        val deflater = Deflater(Deflater.BEST_COMPRESSION, true)
+        deflater.setInput(data)
+        deflater.finish()
+        val out = ByteArrayOutputStream()
+        val buffer = ByteArray(4096)
+        while (!deflater.finished()) out.write(buffer, 0, deflater.deflate(buffer))
+        deflater.end()
+        return out.toByteArray()
+    }
+
+    /** A Deflated bit-3 entry whose data descriptor has no `PK\x07\x08` signature (12 bytes: CRC and sizes). */
+    private fun unsignedDescriptorEntry(name: String, text: String): ByteArray {
+        val data = text.toByteArray()
+        val deflated = rawDeflate(data)
+        return localHeader(0x0008, 8, 0, 0, 0, name) + deflated + le32(crc(data)) + le32(deflated.size.toLong()) + le32(data.size.toLong())
+    }
+
     private fun indexOf(haystack: ByteArray, needle: ByteArray, from: Int = 0): Int =
         (from..haystack.size - needle.size).first { i -> needle.indices.all { haystack[i + it] == needle[it] } }
 
@@ -480,6 +507,54 @@ class VectorGenerator {
                 { plain(windowsUnsafe + file("ok.txt", "x"), "7 files, 7 bytes") },
                 files = windowsUnsafe + file("ok.txt", "x"),
                 blockedOnWindows = windowsUnsafe.map { it.path },
+            ),
+            // Story 004: found by the independent review of the TypeScript reader against ZipInputStream.
+            Gen(
+                "zip-stored-empty-bad-crc",
+                "An empty Stored entry with a non-zero CRC: the reference never checks an empty Stored entry's CRC.",
+                { plainPayload(localHeader(0, 0, 0x12345678, 0, 0, "a.txt")) },
+                files = listOf(FileEntry("a.txt", ByteArray(0))),
+            ),
+            Gen(
+                "zip-stored-compressed-size-marker",
+                "A Stored entry whose unused compressed-size field is 0xFFFFFFFF, without Zip64: not Zip64, decodes.",
+                { plainPayload(localHeader(0, 0, crc("stored".toByteArray()), 0xFFFFFFFFL, 6, "s.txt") + "stored".toByteArray()) },
+                files = listOf(FileEntry("s.txt", "stored".toByteArray())),
+            ),
+            Gen(
+                "zip-descriptor-unsigned",
+                "A data descriptor without its optional signature, followed by another entry.",
+                {
+                    plainPayload(
+                        unsignedDescriptorEntry("u.txt", "unsigned") + localHeader(0, 0, crc("next".toByteArray()), 4, 4, "n.txt") +
+                            "next".toByteArray(),
+                    )
+                },
+                files = listOf(FileEntry("u.txt", "unsigned".toByteArray()), FileEntry("n.txt", "next".toByteArray())),
+            ),
+            Gen(
+                "zip-descriptor-unsigned-at-end",
+                "An unsigned data descriptor with fewer than 16 bytes left: the reference reads 16 bytes, so it's damage.",
+                { plainPayload(unsignedDescriptorEntry("u.txt", "unsigned")) },
+                error = "INVALID_ARCHIVE",
+            ),
+            // Story 004: found while writing the TypeScript reader.
+            Gen(
+                "zip-directory-entry-bomb",
+                "A directory entry carrying data that inflates past the 200 MB limit: directory data counts too.",
+                {
+                    val out = ByteArrayOutputStream()
+                    ZipOutputStream(out).use { zip ->
+                        zip.setLevel(Deflater.BEST_COMPRESSION)
+                        zip.putNextEntry(ZipEntry("d/").apply { time = FIXED_TIME })
+                        val chunk = ByteArray(1 shl 20)
+                        repeat(200) { zip.write(chunk) }
+                        zip.write(ByteArray(1))
+                        zip.closeEntry()
+                    }
+                    plainPayload(out.toByteArray())
+                },
+                error = "INVALID_ARCHIVE",
             ),
             Gen(
                 "summary-sanitized",

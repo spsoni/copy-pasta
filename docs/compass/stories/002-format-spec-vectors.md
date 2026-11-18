@@ -2,7 +2,7 @@
 
 > Written in plan mode as the plan; owner approval of the plan = approval of this story.
 
-**Status:** verifying (PR CI)
+**Status:** done (merged in PR #9, released in 2.1.1)
 **Depends on:** 001
 
 ## Goal
@@ -49,7 +49,7 @@ every later implementation in its own CI. No format change: still `Format: 2`.
   behaviour (character classes, body whitespace, Base64 strictness, marker extent, streaming ZIP reading, UTF-8
   names, Stored/descriptor rules, zero files) are in the spec, with 8 new vectors that pass against today's code.
   Its security findings change behaviour, so they're story 003.
-- [ ] PR CI green.
+- [x] PR CI green (PR #9: Qodana 0 problems after moving it off PR mode).
 
 ## Notes
 - The envelope's human line still says "plugin for JetBrains IDEs"; it changes in story 008 once a second product

@@ -2,7 +2,7 @@
 
 > Written in plan mode as the plan; owner approval of the plan = approval of this story.
 
-**Status:** verifying (local evidence done; CI on the PR pending)
+**Status:** done (merged in PR #9, released in 2.1.1)
 **Depends on:** none
 
 ## Goal
@@ -30,7 +30,7 @@ tags; other products will use `vscode-v…` / `desktop-v…`.
   (checked after commit).
 - [x] Release workflow's tag/version/changelog step run locally from `intellij/`: `version=2.1.0`, notes extracted.
   `actionlint` and `shellcheck .githooks/pre-commit` clean.
-- [ ] PR CI green (Build, Test, Inspect code, Verify plugin) and the verifier still "Compatible" with no deprecated usages.
+- [x] PR CI green (Build, Test, Inspect code, Verify plugin) and the verifier still "Compatible" with no deprecated usages.
   - Build, Test and Verify plugin passed on 6ac123b.
   - Inspect code (Qodana) failed: in PR mode it also analyses the base commit (`d03671a`, before the move), which has no
     `intellij/`. That's expected only for the PR that crosses the move. Confirm Qodana passes on `main` after merging.

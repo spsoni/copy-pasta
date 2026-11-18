@@ -48,6 +48,7 @@ preview first. Encrypted text uses AES-256-GCM with a PBKDF2-derived key; the pa
 - [`spec/`](spec/) — the clipboard format every product shares ([FORMAT.md](spec/FORMAT.md)), the conformance
   [vectors](spec/vectors/README.md) each one is tested against, and the [feature parity](spec/FEATURES.md) table.
 - [`intellij/`](intellij/) — the JetBrains plugin (Kotlin, Gradle).
+- [`vscode/`](vscode/) — the VS Code extension (TypeScript, no runtime dependencies), in development.
 - [`AGENTS.md`](AGENTS.md) — conventions, decisions and lessons for contributors.
 - Run `make help` at the root for build, test and release targets.
 
