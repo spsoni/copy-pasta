@@ -2,7 +2,7 @@
   "name": "copy-pasta-files",
   "displayName": "Copy-Pasta Files",
   "description": "Send files and folders through any chat as one block of text, and paste them back as real files. Works with the JetBrains plugin.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "spsoni",
   "license": "MIT",
   "private": true,
