@@ -3,7 +3,7 @@
 > Written in plan mode as the plan; owner approval of the plan = approval of this story. Details filled in from the
 > approved outline once 004's core existed.
 
-**Status:** done; first release waits on the Marketplace trusted-publishing policy
+**Status:** done: released as `spsoni.copy-pasta-files` 0.1.2 on the VS Code Marketplace (2026-11-18)
 **Depends on:** 004
 
 ## Goal
