@@ -3,8 +3,11 @@
 #   1. checks the tag matches vscode/package.json and that vscode/CHANGELOG.md has an entry for it,
 #   2. type-checks and tests (incl. the spec vectors) and runs the integration tests inside VS Code,
 #   3. packages the .vsix and creates (or updates, on a re-run) the GitHub release with the changelog entry as notes,
-#   4. publishes to the VS Code Marketplace (secret VSCE_PAT) and Open VSX (secret OVSX_PAT), each when its secret exists.
-# The tokens are only given to the step that uses them, and the publishing tools come from vscode/tools' lockfile.
+#   4. publishes to the VS Code Marketplace with trusted publishing (OIDC, no stored token) and to Open VSX
+#      (secret OVSX_PAT) when that secret exists.
+# Marketplace trusted publishing policy (publisher spsoni): repository spsoni/copy-pasta, workflow release-vscode.yml,
+# environment vscode-marketplace. Only the `marketplace` job can request an OIDC token, and it runs no project code:
+# it installs the publishing tools from vscode/tools' lockfile and uploads the .vsix the `release` job built.
 # The JetBrains plugin has its own release.yml with `vX.Y.Z` tags.
 
 name: Release VS Code extension
@@ -17,7 +20,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: read
 
 defaults:
   run:
@@ -27,6 +30,10 @@ jobs:
   release:
     name: Release ${{ github.ref_name }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      vsix: ${{ steps.package.outputs.vsix }}
     steps:
       - name: Fetch Sources
         uses: actions/checkout@v7
@@ -62,15 +69,6 @@ jobs:
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Which stores to publish to
-        id: stores
-        env:
-          HAS_VSCE: ${{ secrets.VSCE_PAT != '' }}
-          HAS_OVSX: ${{ secrets.OVSX_PAT != '' }}
-        run: |
-          echo "vsce=$HAS_VSCE" >> "$GITHUB_OUTPUT"
-          echo "ovsx=$HAS_OVSX" >> "$GITHUB_OUTPUT"
-
       - name: Install
         run: npm ci
 
@@ -89,6 +87,13 @@ jobs:
           npm run package
           echo "vsix=$(ls -- *.vsix)" >> "$GITHUB_OUTPUT"
 
+      - name: Keep the .vsix for the publish jobs
+        uses: actions/upload-artifact@v7
+        with:
+          name: vsix
+          path: vscode/${{ steps.package.outputs.vsix }}
+          if-no-files-found: error
+
       # Not marked latest, so the JetBrains plugin's release stays "latest". Idempotent, so a failed publish can be re-run.
       - name: Create or update the GitHub release
         env:
@@ -104,18 +109,88 @@ jobs:
               --verify-tag --latest=false
           fi
 
-      - name: Publish to the VS Code Marketplace
-        if: ${{ steps.stores.outputs.vsce == 'true' }}
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: tools/node_modules/.bin/vsce publish --packagePath "${{ steps.package.outputs.vsix }}" --skip-duplicate
+  marketplace:
+    name: Publish to the VS Code Marketplace
+    needs: release
+    runs-on: ubuntu-latest
+    environment: vscode-marketplace
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Fetch the publishing tools' lockfile
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: vscode/tools
+          sparse-checkout-cone-mode: false
 
-      - name: Publish to Open VSX
-        if: ${{ steps.stores.outputs.ovsx == 'true' }}
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: vscode/tools/package-lock.json
+
+      - name: Install the publishing tools
+        run: npm --prefix tools ci --no-audit
+
+      - name: Fetch the .vsix
+        uses: actions/download-artifact@v7
+        with:
+          name: vsix
+          path: vscode/dist
+
+      - name: Publish
+        run: tools/node_modules/.bin/vsce publish --oidc --packagePath "dist/${{ needs.release.outputs.vsix }}" --skip-duplicate
+
+  open-vsx:
+    name: Publish to Open VSX
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check for the token
+        id: token
+        env:
+          HAS_OVSX: ${{ secrets.OVSX_PAT != '' }}
+        run: |
+          echo "present=$HAS_OVSX" >> "$GITHUB_OUTPUT"
+          if [ "$HAS_OVSX" != "true" ]; then
+            echo "::warning::OVSX_PAT isn't set, so the extension wasn't published to Open VSX. The .vsix is on the GitHub release."
+          fi
+        working-directory: .
+
+      - name: Fetch the publishing tools' lockfile
+        if: ${{ steps.token.outputs.present == 'true' }}
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: vscode/tools
+          sparse-checkout-cone-mode: false
+
+      - name: Setup Node
+        if: ${{ steps.token.outputs.present == 'true' }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: vscode/tools/package-lock.json
+
+      - name: Install the publishing tools
+        if: ${{ steps.token.outputs.present == 'true' }}
+        run: npm --prefix tools ci --no-audit
+
+      - name: Fetch the .vsix
+        if: ${{ steps.token.outputs.present == 'true' }}
+        uses: actions/download-artifact@v7
+        with:
+          name: vsix
+          path: vscode/dist
+
+      - name: Publish
+        if: ${{ steps.token.outputs.present == 'true' }}
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
-        run: tools/node_modules/.bin/ovsx publish "${{ steps.package.outputs.vsix }}" --skip-duplicate
-
-      - name: Note skipped publishing
-        if: ${{ steps.stores.outputs.vsce != 'true' || steps.stores.outputs.ovsx != 'true' }}
-        run: echo "::warning::Publishing skipped for any store whose token (VSCE_PAT, OVSX_PAT) isn't set. The .vsix is on the GitHub release."
+        run: tools/node_modules/.bin/ovsx publish "dist/${{ needs.release.outputs.vsix }}" --skip-duplicate
